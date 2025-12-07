@@ -330,6 +330,7 @@ const DOM = {
     btnStop: document.getElementById('btn-stop'),
     betAmountDisplay: document.getElementById('bet-amount-display'),
     adminToggle: document.getElementById('admin-toggle'),
+    mathToggle: document.getElementById('math-toggle'),
     adminOverlay: document.getElementById('admin-overlay'),
     adminClose: document.getElementById('admin-close'),
     btnApply: document.getElementById('btn-apply'),
@@ -1611,6 +1612,11 @@ function initEventListeners() {
     
     // Admin panel
     DOM.adminToggle.addEventListener('click', openAdminPanel);
+    
+    // Math verification panel
+    DOM.mathToggle.addEventListener('click', () => {
+        window.open('math-test-runner.html', '_blank');
+    });
     DOM.adminClose.addEventListener('click', closeAdminPanel);
     DOM.adminOverlay.addEventListener('click', (e) => {
         if (e.target === DOM.adminOverlay) {

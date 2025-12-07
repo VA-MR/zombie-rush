@@ -848,6 +848,29 @@ body {
     transform: rotate(90deg);
 }
 
+/* Math Verification Toggle */
+.math-toggle {
+    position: fixed;
+    bottom: 15px;
+    right: 65px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(99, 102, 241, 0.8);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 100;
+}
+
+.math-toggle:hover {
+    background: rgba(99, 102, 241, 1);
+    border-color: #a5b4fc;
+    transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+}
+
 /* Admin Panel Overlay */
 .admin-overlay {
     position: fixed;
