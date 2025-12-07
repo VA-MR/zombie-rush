@@ -1,0 +1,12 @@
+{
+  "name": "zombie-rush",
+  "version": "1.0.0",
+  "description": "Zombie Rush - A thrilling betting game",
+  "scripts": {
+    "start": "npx serve -s . -l ${PORT:-3000}"
+  },
+  "dependencies": {
+    "serve": "^14.2.0"
+  }
+}
+
