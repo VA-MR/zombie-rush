@@ -30,7 +30,9 @@ const GameConfig = {
     safeZoneDuration: 3500,   // 3.5 seconds in safe zone
     safeZonePercent: 0.20,    // Visual: first 20% of track
     respawnDelay: 500,        // 0.5s delay between waves
-    defaultBetAmount: 10,     // $10 default bet
+    defaultBetAmount: 25,     // $25 default bet
+    minBetAmount: 1,          // Minimum bet
+    maxBetAmount: 1000,       // Maximum bet
     spawnChancePerLane: 0.5,  // 50% chance each lane spawns
     // Other settings
     debug: {
@@ -73,6 +75,366 @@ const ZombieTypes = {
         emoji: '⚡',
         configKey: 'wild',
         color: 'wild'
+    }
+};
+
+// ============================================
+// ZOMBIE INTRO SOUNDS SYSTEM
+// ============================================
+const ZombieIntroSounds = {
+    audioContext: null,
+    masterGain: null,
+    isPlaying: false,
+    oscillators: [],
+    intervals: [],
+    noiseNodes: [],
+    
+    // Initialize the audio context
+    init() {
+        if (this.audioContext) return;
+        
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        this.masterGain = this.audioContext.createGain();
+        this.masterGain.gain.value = 0;
+        this.masterGain.connect(this.audioContext.destination);
+    },
+    
+    // Create noise buffer for footsteps and breath
+    createNoiseBuffer(duration = 1) {
+        const sampleRate = this.audioContext.sampleRate;
+        const bufferSize = sampleRate * duration;
+        const buffer = this.audioContext.createBuffer(1, bufferSize, sampleRate);
+        const output = buffer.getChannelData(0);
+        
+        for (let i = 0; i < bufferSize; i++) {
+            output[i] = Math.random() * 2 - 1;
+        }
+        
+        return buffer;
+    },
+    
+    // Create a zombie groan/grumble
+    createZombieGroan() {
+        if (!this.isPlaying) return;
+        
+        const baseFreq = 80 + Math.random() * 60; // 80-140 Hz base
+        const duration = 0.8 + Math.random() * 1.2; // 0.8-2s duration
+        
+        // Main groan oscillator
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        const filter = this.audioContext.createBiquadFilter();
+        
+        osc.type = 'sawtooth';
+        osc.frequency.value = baseFreq;
+        
+        // Add pitch wobble for zombie effect
+        const lfo = this.audioContext.createOscillator();
+        const lfoGain = this.audioContext.createGain();
+        lfo.type = 'sine';
+        lfo.frequency.value = 3 + Math.random() * 4; // 3-7 Hz wobble
+        lfoGain.gain.value = 15 + Math.random() * 25; // Pitch variation
+        lfo.connect(lfoGain);
+        lfoGain.connect(osc.frequency);
+        
+        // Low pass filter for muffled zombie sound
+        filter.type = 'lowpass';
+        filter.frequency.value = 400 + Math.random() * 200;
+        filter.Q.value = 2 + Math.random() * 3;
+        
+        // Envelope
+        const now = this.audioContext.currentTime;
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.15 + Math.random() * 0.1, now + 0.1);
+        gain.gain.setValueAtTime(0.15 + Math.random() * 0.1, now + duration * 0.7);
+        gain.gain.linearRampToValueAtTime(0, now + duration);
+        
+        // Add some pitch drop at end
+        osc.frequency.setValueAtTime(baseFreq, now);
+        osc.frequency.linearRampToValueAtTime(baseFreq * 0.7, now + duration);
+        
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.masterGain);
+        
+        lfo.start(now);
+        osc.start(now);
+        lfo.stop(now + duration);
+        osc.stop(now + duration);
+    },
+    
+    // Create zombie mumbling sounds
+    createZombieMumble() {
+        if (!this.isPlaying) return;
+        
+        const baseFreq = 150 + Math.random() * 100; // 150-250 Hz
+        const duration = 0.3 + Math.random() * 0.5;
+        
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        const filter = this.audioContext.createBiquadFilter();
+        
+        // Use triangle for softer mumble
+        osc.type = 'triangle';
+        osc.frequency.value = baseFreq;
+        
+        // Rapid frequency modulation for mumbling
+        const lfo = this.audioContext.createOscillator();
+        const lfoGain = this.audioContext.createGain();
+        lfo.type = 'sine';
+        lfo.frequency.value = 8 + Math.random() * 12; // Fast modulation
+        lfoGain.gain.value = 30 + Math.random() * 40;
+        lfo.connect(lfoGain);
+        lfoGain.connect(osc.frequency);
+        
+        filter.type = 'bandpass';
+        filter.frequency.value = 300 + Math.random() * 200;
+        filter.Q.value = 1;
+        
+        const now = this.audioContext.currentTime;
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.08 + Math.random() * 0.05, now + 0.05);
+        gain.gain.linearRampToValueAtTime(0, now + duration);
+        
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.masterGain);
+        
+        lfo.start(now);
+        osc.start(now);
+        lfo.stop(now + duration);
+        osc.stop(now + duration);
+    },
+    
+    // Create footstep/running sound
+    createFootstep() {
+        if (!this.isPlaying) return;
+        
+        const noiseBuffer = this.createNoiseBuffer(0.15);
+        const noise = this.audioContext.createBufferSource();
+        noise.buffer = noiseBuffer;
+        
+        const gain = this.audioContext.createGain();
+        const filter = this.audioContext.createBiquadFilter();
+        
+        // Low frequency thump
+        filter.type = 'lowpass';
+        filter.frequency.value = 100 + Math.random() * 80;
+        filter.Q.value = 1;
+        
+        const now = this.audioContext.currentTime;
+        gain.gain.setValueAtTime(0.25 + Math.random() * 0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.masterGain);
+        
+        noise.start(now);
+        noise.stop(now + 0.15);
+    },
+    
+    // Create dragging/shuffling sound
+    createShuffle() {
+        if (!this.isPlaying) return;
+        
+        const noiseBuffer = this.createNoiseBuffer(0.3);
+        const noise = this.audioContext.createBufferSource();
+        noise.buffer = noiseBuffer;
+        
+        const gain = this.audioContext.createGain();
+        const filter = this.audioContext.createBiquadFilter();
+        
+        filter.type = 'bandpass';
+        filter.frequency.value = 200 + Math.random() * 300;
+        filter.Q.value = 0.5;
+        
+        const now = this.audioContext.currentTime;
+        gain.gain.setValueAtTime(0.05, now);
+        gain.gain.linearRampToValueAtTime(0.08 + Math.random() * 0.04, now + 0.1);
+        gain.gain.linearRampToValueAtTime(0, now + 0.25);
+        
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.masterGain);
+        
+        noise.start(now);
+        noise.stop(now + 0.3);
+    },
+    
+    // Create ambient horde rumble (continuous background)
+    createHordeRumble() {
+        // Low drone representing distant zombie horde
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        const filter = this.audioContext.createBiquadFilter();
+        
+        osc.type = 'sawtooth';
+        osc.frequency.value = 40; // Very low
+        
+        // Slow modulation for movement feel
+        const lfo = this.audioContext.createOscillator();
+        const lfoGain = this.audioContext.createGain();
+        lfo.type = 'sine';
+        lfo.frequency.value = 0.3;
+        lfoGain.gain.value = 8;
+        lfo.connect(lfoGain);
+        lfoGain.connect(osc.frequency);
+        
+        filter.type = 'lowpass';
+        filter.frequency.value = 120;
+        filter.Q.value = 3;
+        
+        gain.gain.value = 0.12;
+        
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.masterGain);
+        
+        osc.start();
+        lfo.start();
+        
+        this.oscillators.push({ osc, gain, lfo });
+        
+        return { osc, gain };
+    },
+    
+    // Create breathing/rasping sound layer
+    createBreathingLayer() {
+        const noiseBuffer = this.createNoiseBuffer(2);
+        
+        const createBreath = () => {
+            if (!this.isPlaying) return;
+            
+            const noise = this.audioContext.createBufferSource();
+            noise.buffer = noiseBuffer;
+            
+            const gain = this.audioContext.createGain();
+            const filter = this.audioContext.createBiquadFilter();
+            
+            filter.type = 'bandpass';
+            filter.frequency.value = 400 + Math.random() * 200;
+            filter.Q.value = 2;
+            
+            const breathDuration = 0.6 + Math.random() * 0.4;
+            const now = this.audioContext.currentTime;
+            
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(0.06, now + breathDuration * 0.3);
+            gain.gain.linearRampToValueAtTime(0, now + breathDuration);
+            
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.masterGain);
+            
+            noise.start(now);
+            noise.stop(now + breathDuration);
+        };
+        
+        // Schedule random breaths
+        const breathInterval = setInterval(() => {
+            if (this.isPlaying && Math.random() > 0.3) {
+                createBreath();
+            }
+        }, 400 + Math.random() * 300);
+        
+        this.intervals.push(breathInterval);
+    },
+    
+    // Start all zombie sounds
+    start() {
+        if (this.isPlaying) return;
+        
+        this.init();
+        
+        // Resume audio context if suspended (browser autoplay policy)
+        if (this.audioContext.state === 'suspended') {
+            this.audioContext.resume();
+        }
+        
+        this.isPlaying = true;
+        
+        // Fade in master volume
+        this.masterGain.gain.setTargetAtTime(0.7, this.audioContext.currentTime, 0.3);
+        
+        // Start continuous background rumble
+        this.createHordeRumble();
+        
+        // Start breathing layer
+        this.createBreathingLayer();
+        
+        // Schedule random zombie groans
+        const groanInterval = setInterval(() => {
+            if (this.isPlaying && Math.random() > 0.4) {
+                this.createZombieGroan();
+            }
+        }, 800 + Math.random() * 600);
+        this.intervals.push(groanInterval);
+        
+        // Schedule random mumbles
+        const mumbleInterval = setInterval(() => {
+            if (this.isPlaying && Math.random() > 0.3) {
+                this.createZombieMumble();
+            }
+        }, 300 + Math.random() * 200);
+        this.intervals.push(mumbleInterval);
+        
+        // Schedule footsteps (running zombies)
+        const footstepInterval = setInterval(() => {
+            if (this.isPlaying) {
+                this.createFootstep();
+                // Sometimes add a second footstep for running effect
+                if (Math.random() > 0.5) {
+                    setTimeout(() => this.createFootstep(), 100 + Math.random() * 50);
+                }
+            }
+        }, 200 + Math.random() * 100);
+        this.intervals.push(footstepInterval);
+        
+        // Schedule shuffling sounds
+        const shuffleInterval = setInterval(() => {
+            if (this.isPlaying && Math.random() > 0.6) {
+                this.createShuffle();
+            }
+        }, 500 + Math.random() * 300);
+        this.intervals.push(shuffleInterval);
+        
+        // Add occasional extra groans for variety
+        const extraGroanInterval = setInterval(() => {
+            if (this.isPlaying && Math.random() > 0.7) {
+                setTimeout(() => this.createZombieGroan(), 200);
+            }
+        }, 1500);
+        this.intervals.push(extraGroanInterval);
+        
+        console.log('🧟 Zombie intro sounds started');
+    },
+    
+    // Stop all zombie sounds
+    stop() {
+        if (!this.isPlaying) return;
+        
+        this.isPlaying = false;
+        
+        // Fade out master volume
+        this.masterGain.gain.setTargetAtTime(0, this.audioContext.currentTime, 0.2);
+        
+        // Stop all oscillators after fade
+        setTimeout(() => {
+            this.oscillators.forEach(({ osc, lfo }) => {
+                try {
+                    osc.stop();
+                    if (lfo) lfo.stop();
+                } catch (e) {}
+            });
+            this.oscillators = [];
+        }, 500);
+        
+        // Clear intervals
+        this.intervals.forEach(interval => clearInterval(interval));
+        this.intervals = [];
+        
+        console.log('🧟 Zombie intro sounds stopped');
     }
 };
 
@@ -329,6 +691,11 @@ const DOM = {
     btnStart: document.getElementById('btn-start'),
     btnStop: document.getElementById('btn-stop'),
     betAmountDisplay: document.getElementById('bet-amount-display'),
+    // Bet selector elements
+    betPresets: document.querySelectorAll('.bet-preset'),
+    betCustomInput: document.getElementById('bet-custom-input'),
+    betCustomSet: document.getElementById('bet-custom-set'),
+    betCurrentAmount: document.getElementById('bet-current-amount'),
     adminToggle: document.getElementById('admin-toggle'),
     mathToggle: document.getElementById('math-toggle'),
     adminOverlay: document.getElementById('admin-overlay'),
@@ -416,6 +783,113 @@ function formatMoney(amount) {
 
 function updateBalance() {
     DOM.balance.textContent = formatMoney(GameState.balance);
+}
+
+// ============================================
+// BET SELECTOR SYSTEM
+// ============================================
+
+/**
+ * Set the current bet amount
+ */
+function setBetAmount(amount) {
+    // Validate amount
+    amount = Math.max(GameConfig.minBetAmount, Math.min(GameConfig.maxBetAmount, amount));
+    amount = Math.round(amount * 100) / 100; // Round to 2 decimal places
+    
+    GameConfig.defaultBetAmount = amount;
+    
+    // Update display
+    if (DOM.betCurrentAmount) {
+        DOM.betCurrentAmount.textContent = `$${formatMoney(amount)}`;
+    }
+    
+    // Update all bet badges
+    ['safe', 'medium', 'wild'].forEach(laneName => {
+        const badge = DOM.lanes[laneName].betBadge;
+        if (badge) {
+            badge.textContent = `BET: $${formatMoney(amount)}`;
+        }
+    });
+    
+    console.log(`💰 Bet amount set to $${formatMoney(amount)}`);
+}
+
+/**
+ * Handle preset button click
+ */
+function handlePresetClick(button) {
+    const amount = parseFloat(button.dataset.amount);
+    
+    // Update active state on buttons
+    DOM.betPresets.forEach(btn => btn.classList.remove('active'));
+    button.classList.add('active');
+    
+    // Clear custom input
+    if (DOM.betCustomInput) {
+        DOM.betCustomInput.value = '';
+    }
+    
+    setBetAmount(amount);
+}
+
+/**
+ * Handle custom bet input
+ */
+function handleCustomBet() {
+    const input = DOM.betCustomInput;
+    if (!input) return;
+    
+    const amount = parseFloat(input.value);
+    
+    if (isNaN(amount) || amount < GameConfig.minBetAmount) {
+        showNotification(`Minimum bet is $${GameConfig.minBetAmount}`, 'error');
+        return;
+    }
+    
+    if (amount > GameConfig.maxBetAmount) {
+        showNotification(`Maximum bet is $${GameConfig.maxBetAmount}`, 'error');
+        return;
+    }
+    
+    if (amount > GameState.balance) {
+        showNotification('Bet amount exceeds balance!', 'error');
+        return;
+    }
+    
+    // Remove active state from presets
+    DOM.betPresets.forEach(btn => btn.classList.remove('active'));
+    
+    setBetAmount(amount);
+    showNotification(`Bet set to $${formatMoney(amount)}`, 'success');
+}
+
+/**
+ * Initialize bet selector event listeners
+ */
+function initBetSelector() {
+    // Preset button clicks
+    DOM.betPresets.forEach(button => {
+        button.addEventListener('click', () => handlePresetClick(button));
+    });
+    
+    // Custom input - set on button click
+    if (DOM.betCustomSet) {
+        DOM.betCustomSet.addEventListener('click', handleCustomBet);
+    }
+    
+    // Custom input - set on Enter key
+    if (DOM.betCustomInput) {
+        DOM.betCustomInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleCustomBet();
+            }
+        });
+    }
+    
+    // Initialize display with default bet
+    setBetAmount(GameConfig.defaultBetAmount);
 }
 
 /**
@@ -940,10 +1414,11 @@ function placeBet(laneName) {
     dom.element.classList.add('has-bet');
     dom.element.classList.remove('no-bet');
     
-    // Show initial bet value × current multiplier (1.00x in safe zone)
+    // Show initial bet value × current multiplier in multiplier display
     const initialPotential = betAmount * state.currentMultiplier;
-    dom.potential.innerHTML = `<span class="potential-value">$${formatMoney(initialPotential)}</span><span class="potential-label">POTENTIAL WIN</span>`;
-    dom.potential.style.color = '#ffd700';
+    dom.multiplier.innerHTML = `<span class="multiplier-value">${state.currentMultiplier.toFixed(2)}x</span><span class="bet-win-value">$${formatMoney(initialPotential)}</span>`;
+    // Hide potential display - bet value shown in multiplier box
+    dom.potential.style.display = 'none';
     
     // Update bet badge
     if (dom.betBadge) {
@@ -976,6 +1451,9 @@ function cashOut(laneName) {
     const cashoutMultiplier = state.currentMultiplier;
     state.bet = 0;
     
+    // Reset potential display visibility
+    dom.potential.style.display = '';
+    
     // Update UI - show win amount in multiplier display
     dom.multiplier.innerHTML = `<span class="multiplier-value">${cashoutMultiplier.toFixed(2)}x</span><span class="bet-win-value" style="color:#4ade80;text-shadow:0 0 15px rgba(74,222,128,1);">+$${formatMoney(winAmount)}</span>`;
     
@@ -985,7 +1463,7 @@ function cashOut(laneName) {
     setTimeout(() => dom.element.classList.remove('flash-win'), 500);
     
     dom.potential.innerHTML = `Won: <span class="bet-value">+$${formatMoney(profit)}</span>`;
-    dom.potential.style.color = '#ffd700';
+    dom.potential.style.color = '#4ade80';
     
     // Show win notification
     showResultPopup('win', `CASHED OUT at ${cashoutMultiplier.toFixed(2)}x`, winAmount);
@@ -1088,13 +1566,14 @@ function spawnZombie(laneName, zombieType) {
     // Add zombie type indicator badge
     addZombieTypeBadge(laneName, zombieType);
     
-    // Update UI - reset multiplier display to simple text
-    dom.multiplier.innerHTML = '';
-    dom.multiplier.textContent = '1.00x';
+    // Update UI - show multiplier with "Click to bet" text below
+    dom.multiplier.innerHTML = '<span class="multiplier-value">1.00x</span><span class="click-to-bet">CLICK TO BET</span>';
     dom.multiplier.classList.remove('hot', 'danger');
+    dom.multiplier.classList.add('betting-open');
     dom.element.classList.add('spawning');
     dom.element.classList.remove('has-bet', 'betting-closed', 'no-bet');
-    dom.potential.textContent = 'Click to bet';
+    dom.potential.style.display = '';
+    dom.potential.innerHTML = '<span class="multiplier-inline">1.00x</span><span class="potential-label">Click to bet</span>';
     dom.potential.style.color = '#ffd700';
     
     setTimeout(() => dom.element.classList.remove('spawning'), 300);
@@ -1155,6 +1634,7 @@ function resetLaneToIdle(laneName) {
     dom.multiplier.classList.remove('hot', 'danger');
     dom.element.classList.remove('has-bet', 'spawning', 'betting-closed', 'no-bet');
     dom.element.classList.remove('zombie-type-slow', 'zombie-type-medium', 'zombie-type-wild');
+    dom.potential.style.display = '';
     dom.potential.textContent = '';
     dom.potential.style.color = '';
 }
@@ -1246,12 +1726,16 @@ function updateContinuousGame() {
             state.zombiePosition = 90 - (safeZoneProgress * (90 - safeZoneEndPosition));
             dom.zombieContainer.style.left = state.zombiePosition + '%';
             
-            // Update potential win display during safe zone (if bet placed)
+            // Update multiplier display during safe zone
             if (state.bet > 0) {
                 const potentialWin = state.bet * state.currentMultiplier;
-                // Show bet value in multiplier display during safe zone too
                 dom.multiplier.innerHTML = `<span class="multiplier-value">${state.currentMultiplier.toFixed(2)}x</span><span class="bet-win-value">$${formatMoney(potentialWin)}</span>`;
-                dom.potential.innerHTML = `<span class="potential-value">$${formatMoney(potentialWin)}</span><span class="potential-label">POTENTIAL WIN</span>`;
+                dom.multiplier.classList.remove('betting-open');
+                dom.potential.innerHTML = `<span class="multiplier-inline">${state.currentMultiplier.toFixed(2)}x</span><span class="bet-win-value">$${formatMoney(potentialWin)}</span>`;
+            } else {
+                dom.multiplier.innerHTML = `<span class="multiplier-value">${state.currentMultiplier.toFixed(2)}x</span><span class="click-to-bet">CLICK TO BET</span>`;
+                dom.multiplier.classList.add('betting-open');
+                dom.potential.innerHTML = `<span class="multiplier-inline">${state.currentMultiplier.toFixed(2)}x</span><span class="potential-label">Click to bet</span>`;
             }
             
             // Check if safe zone time is over
@@ -1260,17 +1744,15 @@ function updateContinuousGame() {
                 state.state = LaneState.ACTIVE;
                 state.activeTime = currentTime;
                 
-                // Close betting for this lane
+                // Close betting for this lane - remove click to bet
                 dom.element.classList.add('betting-closed');
+                dom.multiplier.classList.remove('betting-open');
+                
                 if (state.bet === 0) {
                     dom.element.classList.add('no-bet');
-                    dom.potential.textContent = 'No bet placed';
+                    dom.multiplier.innerHTML = `<span class="multiplier-value">${state.currentMultiplier.toFixed(2)}x</span>`;
+                    dom.potential.innerHTML = `<span class="multiplier-inline">${state.currentMultiplier.toFixed(2)}x</span><span class="potential-label">No bet placed</span>`;
                     dom.potential.style.color = '#94a3b8';
-                } else {
-                    // Show the bet value × multiplier with cash out prompt
-                    const potentialWin = state.bet * state.currentMultiplier;
-                    dom.potential.innerHTML = `<span class="potential-value">$${formatMoney(potentialWin)}</span><span class="click-cashout">CLICK TO CASH OUT</span>`;
-                    dom.potential.style.color = '#ffd700';
                 }
                 
                 // Start projectiles
@@ -1302,12 +1784,14 @@ function updateContinuousGame() {
                 return;
             }
             
-            // Update UI - show multiplier and bet value together
+            // Update UI - show multiplier and bet value in multiplier display
             if (state.bet > 0) {
                 const potentialWin = state.bet * state.currentMultiplier;
                 dom.multiplier.innerHTML = `<span class="multiplier-value">${state.currentMultiplier.toFixed(2)}x</span><span class="bet-win-value">$${formatMoney(potentialWin)}</span>`;
+                dom.potential.innerHTML = `<span class="multiplier-inline">${state.currentMultiplier.toFixed(2)}x</span><span class="bet-win-value">$${formatMoney(potentialWin)}</span><span class="click-cashout">CLICK TO CASH OUT</span>`;
             } else {
                 dom.multiplier.textContent = state.currentMultiplier.toFixed(2) + 'x';
+                dom.potential.innerHTML = `<span class="multiplier-inline">${state.currentMultiplier.toFixed(2)}x</span><span class="potential-label">No bet placed</span>`;
             }
             
             // Update multiplier color
@@ -1325,13 +1809,6 @@ function updateContinuousGame() {
             const remainingTrack = safeZoneEndPosition - 10; // From safe zone end to plant (10%)
             state.zombiePosition = safeZoneEndPosition - (activeProgress * remainingTrack);
             dom.zombieContainer.style.left = state.zombiePosition + '%';
-            
-            // Update potential win display - show growing bet value (bet × multiplier)
-            if (state.bet > 0) {
-                const potentialWin = state.bet * state.currentMultiplier;
-                dom.potential.innerHTML = `<span class="potential-value">$${formatMoney(potentialWin)}</span><span class="click-cashout">CLICK TO CASH OUT</span>`;
-                dom.potential.style.color = '#ffd700';
-            }
             
             allLanesFinished = false;
         }
@@ -1366,18 +1843,19 @@ function handleCrash(laneName) {
     // Show explosion
     showExplosion(laneName);
     
+    // Reset potential display visibility
+    dom.potential.style.display = '';
+    
     // Update UI - show crash with lost bet amount if applicable
     if (state.bet > 0) {
         dom.multiplier.innerHTML = `<span class="multiplier-value">CRASH!</span><span class="bet-win-value" style="color:#ef4444;text-shadow:0 0 15px rgba(239,68,68,1);">-$${formatMoney(state.bet)}</span>`;
+        dom.potential.innerHTML = `Lost: <span class="bet-value">$${formatMoney(state.bet)}</span>`;
+        dom.potential.style.color = '#ef4444';
     } else {
         dom.multiplier.textContent = 'CRASH!';
+        dom.potential.textContent = '';
     }
     dom.multiplier.classList.add('danger');
-    
-    if (state.bet > 0) {
-        dom.potential.innerHTML = `Lost: <span class="bet-value">$${formatMoney(state.bet)}</span>`;
-        dom.potential.style.color = '#ffd700';
-    }
     
     // Shake effect
     dom.element.classList.add('shake');
@@ -1746,6 +2224,7 @@ function init() {
     updateBalance();
     createSafeZoneMarkers();
     initEventListeners();
+    initBetSelector();
     
     // Hide stop button initially
     if (DOM.btnStop) {
@@ -1762,5 +2241,553 @@ function init() {
     });
 }
 
+// ============================================
+// FEEDBACK SYSTEM
+// ============================================
+
+const FeedbackSystem = {
+    currentRating: 0,
+    storageKey: 'zombieRushFeedback',
+    
+    // Get all feedback from localStorage
+    getAllFeedback() {
+        try {
+            const data = localStorage.getItem(this.storageKey);
+            return data ? JSON.parse(data) : [];
+        } catch (e) {
+            console.error('Error reading feedback:', e);
+            return [];
+        }
+    },
+    
+    // Save feedback to localStorage
+    saveFeedback(feedback) {
+        try {
+            const allFeedback = this.getAllFeedback();
+            feedback.id = Date.now();
+            feedback.timestamp = new Date().toISOString();
+            allFeedback.unshift(feedback);
+            localStorage.setItem(this.storageKey, JSON.stringify(allFeedback));
+            return true;
+        } catch (e) {
+            console.error('Error saving feedback:', e);
+            return false;
+        }
+    },
+    
+    // Calculate stats
+    getStats() {
+        const feedback = this.getAllFeedback();
+        const total = feedback.length;
+        
+        if (total === 0) {
+            return { total: 0, avgRating: 0 };
+        }
+        
+        const sumRating = feedback.reduce((sum, f) => sum + f.rating, 0);
+        const avgRating = (sumRating / total).toFixed(1);
+        
+        return { total, avgRating };
+    },
+    
+    // Format date for display
+    formatDate(isoString) {
+        const date = new Date(isoString);
+        const now = new Date();
+        const diff = now - date;
+        
+        // Less than 1 minute
+        if (diff < 60000) {
+            return 'Just now';
+        }
+        // Less than 1 hour
+        if (diff < 3600000) {
+            const mins = Math.floor(diff / 60000);
+            return `${mins} min${mins > 1 ? 's' : ''} ago`;
+        }
+        // Less than 24 hours
+        if (diff < 86400000) {
+            const hours = Math.floor(diff / 3600000);
+            return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+        }
+        // Less than 7 days
+        if (diff < 604800000) {
+            const days = Math.floor(diff / 86400000);
+            return `${days} day${days > 1 ? 's' : ''} ago`;
+        }
+        // Otherwise show date
+        return date.toLocaleDateString();
+    },
+    
+    // Render star rating display
+    renderStars(rating) {
+        let html = '';
+        for (let i = 1; i <= 5; i++) {
+            html += `<span class="star ${i <= rating ? '' : 'empty'}">★</span>`;
+        }
+        return html;
+    },
+    
+    // Render feedback list
+    renderFeedbackList() {
+        const feedback = this.getAllFeedback();
+        const listEl = document.getElementById('feedback-list');
+        const stats = this.getStats();
+        
+        // Update stats
+        document.getElementById('total-reviews').textContent = stats.total;
+        document.getElementById('avg-rating').textContent = stats.total > 0 ? `${stats.avgRating}★` : '—';
+        
+        if (feedback.length === 0) {
+            listEl.innerHTML = '<p class="no-feedback">No feedback yet. Be the first to share your thoughts!</p>';
+            return;
+        }
+        
+        listEl.innerHTML = feedback.map(f => `
+            <div class="feedback-item">
+                <div class="feedback-item-header">
+                    <span class="feedback-author">🧟 ${this.escapeHtml(f.name || 'Anonymous')}</span>
+                    <span class="feedback-date">${this.formatDate(f.timestamp)}</span>
+                </div>
+                <div class="feedback-stars">${this.renderStars(f.rating)}</div>
+                <p class="feedback-note">${this.escapeHtml(f.note)}</p>
+            </div>
+        `).join('');
+    },
+    
+    // Escape HTML to prevent XSS
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    },
+    
+    // Reset form
+    resetForm() {
+        this.currentRating = 0;
+        document.getElementById('feedback-note').value = '';
+        document.getElementById('feedback-name').value = '';
+        document.getElementById('char-count').textContent = '0';
+        document.getElementById('rating-text').textContent = 'Click to rate';
+        
+        document.querySelectorAll('#star-rating .star').forEach(star => {
+            star.classList.remove('active', 'hover');
+        });
+    },
+    
+    // Initialize feedback system
+    init() {
+        const overlay = document.getElementById('feedback-overlay');
+        const closeBtn = document.getElementById('feedback-close');
+        const feedbackToggle = document.getElementById('feedback-toggle');
+        const submitBtn = document.getElementById('btn-submit-feedback');
+        const noteInput = document.getElementById('feedback-note');
+        const tabs = document.querySelectorAll('.feedback-tab');
+        const stars = document.querySelectorAll('#star-rating .star');
+        
+        // Open feedback panel
+        if (feedbackToggle) {
+            feedbackToggle.addEventListener('click', () => {
+                overlay.classList.add('active');
+                this.renderFeedbackList();
+            });
+        }
+        
+        // Close feedback panel
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                overlay.classList.remove('active');
+            });
+        }
+        
+        // Click outside to close
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                overlay.classList.remove('active');
+            }
+        });
+        
+        // Tab switching
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const targetTab = tab.dataset.tab;
+                
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                document.getElementById('feedback-write-tab').classList.toggle('hidden', targetTab !== 'write');
+                document.getElementById('feedback-view-tab').classList.toggle('hidden', targetTab !== 'view');
+                
+                if (targetTab === 'view') {
+                    this.renderFeedbackList();
+                }
+            });
+        });
+        
+        // Star rating interaction
+        const ratingLabels = ['Poor', 'Fair', 'Good', 'Great', 'Amazing!'];
+        
+        stars.forEach(star => {
+            star.addEventListener('mouseenter', () => {
+                const rating = parseInt(star.dataset.rating);
+                stars.forEach(s => {
+                    const r = parseInt(s.dataset.rating);
+                    s.classList.toggle('hover', r <= rating);
+                });
+                document.getElementById('rating-text').textContent = ratingLabels[rating - 1];
+            });
+            
+            star.addEventListener('mouseleave', () => {
+                stars.forEach(s => s.classList.remove('hover'));
+                if (this.currentRating > 0) {
+                    document.getElementById('rating-text').textContent = ratingLabels[this.currentRating - 1];
+                } else {
+                    document.getElementById('rating-text').textContent = 'Click to rate';
+                }
+            });
+            
+            star.addEventListener('click', () => {
+                this.currentRating = parseInt(star.dataset.rating);
+                stars.forEach(s => {
+                    const r = parseInt(s.dataset.rating);
+                    s.classList.toggle('active', r <= this.currentRating);
+                });
+                document.getElementById('rating-text').textContent = ratingLabels[this.currentRating - 1];
+            });
+        });
+        
+        // Character count for note
+        noteInput.addEventListener('input', () => {
+            document.getElementById('char-count').textContent = noteInput.value.length;
+        });
+        
+        // Submit feedback
+        submitBtn.addEventListener('click', () => {
+            const note = noteInput.value.trim();
+            const name = document.getElementById('feedback-name').value.trim();
+            
+            if (this.currentRating === 0) {
+                showNotification('Please select a rating!', 'error');
+                return;
+            }
+            
+            if (!note) {
+                showNotification('Please write a note!', 'error');
+                return;
+            }
+            
+            const feedback = {
+                rating: this.currentRating,
+                note: note,
+                name: name || 'Anonymous'
+            };
+            
+            if (this.saveFeedback(feedback)) {
+                showNotification('Thanks for your feedback! 🧟', 'success');
+                this.resetForm();
+                
+                // Switch to view tab to show the new feedback
+                tabs.forEach(t => t.classList.remove('active'));
+                document.querySelector('[data-tab="view"]').classList.add('active');
+                document.getElementById('feedback-write-tab').classList.add('hidden');
+                document.getElementById('feedback-view-tab').classList.remove('hidden');
+                this.renderFeedbackList();
+            } else {
+                showNotification('Error saving feedback. Please try again.', 'error');
+            }
+        });
+        
+        // Escape key to close
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && overlay.classList.contains('active')) {
+                overlay.classList.remove('active');
+            }
+        });
+    }
+};
+
+// ============================================
+// INTRO SCREEN SYSTEM
+// ============================================
+const IntroScreen = {
+    introScreen: null,
+    videoContainer: null,
+    video: null,
+    splashScreen: null,
+    playBtn: null,
+    skipBtn: null,
+    gameContainer: null,
+    soundsStarted: false,
+    soundPrompt: null,
+    
+    init() {
+        // Get DOM elements
+        this.introScreen = document.getElementById('intro-screen');
+        this.videoContainer = document.getElementById('intro-video-container');
+        this.video = document.getElementById('intro-video');
+        this.splashScreen = document.getElementById('splash-screen');
+        this.playBtn = document.getElementById('play-btn');
+        this.skipBtn = document.getElementById('skip-video-btn');
+        this.gameContainer = document.getElementById('game-container');
+        
+        // If no intro elements found, skip intro
+        if (!this.introScreen || !this.video) {
+            console.log('Intro elements not found, starting game directly');
+            this.startGame();
+            return;
+        }
+        
+        // Create sound prompt overlay
+        this.createSoundPrompt();
+        
+        // Listen for video end
+        this.video.addEventListener('ended', () => this.showSplash());
+        
+        // Listen for video error (fallback to splash)
+        this.video.addEventListener('error', () => {
+            console.log('Video failed to load, showing splash');
+            this.showSplash();
+        });
+        
+        // Skip button - only works after sound is enabled or prompt dismissed
+        if (this.skipBtn) {
+            const self = this;
+            this.skipBtn.addEventListener('click', (e) => {
+                // If sound prompt is visible, enable sound first instead of skipping
+                if (self.soundPrompt && !self.soundPrompt.classList.contains('hidden')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    self.enableSound();
+                    return;
+                }
+                self.showSplash();
+            });
+        }
+        
+        // Play button - start the game
+        if (this.playBtn) {
+            this.playBtn.addEventListener('click', () => this.startGame());
+        }
+        
+        // Allow clicking anywhere on splash to start
+        if (this.splashScreen) {
+            this.splashScreen.addEventListener('click', (e) => {
+                // Only if clicking the background, not the button
+                if (e.target === this.splashScreen || e.target.closest('.splash-content')) {
+                    this.startGame();
+                }
+            });
+        }
+        
+        // Allow pressing Enter or Space to proceed
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                if (this.introScreen && !this.introScreen.classList.contains('hidden')) {
+                    e.preventDefault();
+                    // If sound prompt is visible, enable sound first
+                    if (this.soundPrompt && !this.soundPrompt.classList.contains('hidden')) {
+                        this.enableSound();
+                    } else if (this.videoContainer && !this.videoContainer.classList.contains('hidden')) {
+                        this.showSplash();
+                    } else if (this.splashScreen && !this.splashScreen.classList.contains('hidden')) {
+                        this.startGame();
+                    }
+                }
+            }
+        });
+        
+        console.log('🎬 Intro screen initialized - click to enable zombie sounds...');
+    },
+    
+    createSoundPrompt() {
+        // Create overlay prompt to click for sound
+        this.soundPrompt = document.createElement('div');
+        this.soundPrompt.className = 'sound-prompt-overlay';
+        this.soundPrompt.innerHTML = `
+            <div class="sound-prompt-content">
+                <div class="sound-prompt-icon">🔊</div>
+                <div class="sound-prompt-text">CLICK TO ENABLE SOUND</div>
+                <div class="sound-prompt-hint">Experience the zombie horde!</div>
+            </div>
+        `;
+        
+        // Add styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .sound-prompt-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.7);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 9999;
+                cursor: pointer;
+                animation: pulse-bg 2s ease-in-out infinite;
+            }
+            
+            @keyframes pulse-bg {
+                0%, 100% { background: rgba(0, 0, 0, 0.7); }
+                50% { background: rgba(20, 0, 0, 0.8); }
+            }
+            
+            .sound-prompt-overlay.hidden {
+                display: none !important;
+            }
+            
+            .sound-prompt-content {
+                text-align: center;
+                animation: bounce-in 0.5s ease-out;
+                pointer-events: none;
+            }
+            
+            @keyframes bounce-in {
+                0% { transform: scale(0.5); opacity: 0; }
+                70% { transform: scale(1.1); }
+                100% { transform: scale(1); opacity: 1; }
+            }
+            
+            .sound-prompt-icon {
+                font-size: 4rem;
+                margin-bottom: 1rem;
+                animation: pulse-icon 1s ease-in-out infinite;
+            }
+            
+            @keyframes pulse-icon {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.2); }
+            }
+            
+            .sound-prompt-text {
+                font-family: 'Creepster', cursive;
+                font-size: 2rem;
+                color: #4ade80;
+                text-shadow: 0 0 20px rgba(74, 222, 128, 0.8);
+                letter-spacing: 3px;
+                margin-bottom: 0.5rem;
+            }
+            
+            .sound-prompt-hint {
+                font-family: 'Bangers', cursive;
+                font-size: 1rem;
+                color: #94a3b8;
+                letter-spacing: 2px;
+            }
+            
+            /* Hide skip button when sound prompt is visible */
+            .intro-video-container:has(.sound-prompt-overlay:not(.hidden)) .skip-video-btn {
+                pointer-events: none;
+                opacity: 0.3;
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Add to video container
+        if (this.videoContainer) {
+            this.videoContainer.appendChild(this.soundPrompt);
+            
+            // Also add click handler on video container itself for backup
+            const self = this;
+            this.videoContainer.addEventListener('click', (e) => {
+                if (self.soundPrompt && !self.soundPrompt.classList.contains('hidden')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    self.enableSound();
+                }
+            }, true);
+        }
+        
+        // Click handler to enable sound - capture phase to get it first
+        this.soundPrompt.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            this.enableSound();
+        }, true);
+    },
+    
+    enableSound() {
+        if (this.soundsStarted) return;
+        
+        this.soundsStarted = true;
+        
+        // Hide prompt
+        if (this.soundPrompt) {
+            this.soundPrompt.classList.add('hidden');
+        }
+        
+        // Start zombie sounds
+        ZombieIntroSounds.start();
+        
+        console.log('🔊 Sound enabled - zombie horde incoming!');
+    },
+    
+    showSplash() {
+        // Stop zombie intro sounds
+        ZombieIntroSounds.stop();
+        
+        // Stop and hide video
+        if (this.video) {
+            this.video.pause();
+        }
+        if (this.videoContainer) {
+            this.videoContainer.classList.add('hidden');
+        }
+        
+        // Show splash screen
+        if (this.splashScreen) {
+            this.splashScreen.classList.remove('hidden');
+        }
+        
+        console.log('🧟 Splash screen displayed');
+    },
+    
+    startGame() {
+        // Stop zombie intro sounds (in case still playing)
+        ZombieIntroSounds.stop();
+        
+        // Hide intro screen completely
+        if (this.introScreen) {
+            this.introScreen.classList.add('hidden');
+        }
+        
+        // Show game container
+        if (this.gameContainer) {
+            this.gameContainer.classList.remove('hidden');
+        }
+        
+        // Switch to single lane mode
+        switchMode('single');
+        
+        // Start the music automatically
+        AmbientMusic.start();
+        
+        // Update music toggle UI
+        if (DOM.musicToggle) {
+            DOM.musicToggle.classList.add('active');
+        }
+        if (DOM.musicIcon) {
+            DOM.musicIcon.textContent = '🎵';
+        }
+        if (DOM.musicLabel) {
+            DOM.musicLabel.textContent = 'Music On';
+        }
+        
+        // Start the game automatically
+        setTimeout(() => {
+            startContinuousMode();
+        }, 300); // Small delay for smooth transition
+        
+        console.log('🎮 Game started! Single lane mode with music on.');
+    }
+};
+
 // Start when DOM is ready
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => {
+    init();
+    FeedbackSystem.init();
+    IntroScreen.init();
+});

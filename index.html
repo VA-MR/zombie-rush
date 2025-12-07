@@ -8,7 +8,34 @@
     <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Bangers&family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="game-container">
+    <!-- Intro Screen: Video + Splash -->
+    <div class="intro-screen" id="intro-screen">
+        <!-- Video Phase -->
+        <div class="intro-video-container" id="intro-video-container">
+            <video class="intro-video" id="intro-video" autoplay muted playsinline>
+                <source src="assets/Generating_Zombie_Animations.mp4" type="video/mp4">
+            </video>
+            <button class="skip-video-btn" id="skip-video-btn">Skip</button>
+        </div>
+        
+        <!-- Splash Phase (hidden initially) -->
+        <div class="splash-screen hidden" id="splash-screen">
+            <div class="splash-content">
+                <div class="splash-logo">
+                    <span class="splash-zombie-icon">🧟</span>
+                    <h1 class="splash-title">ZOMBIE RUSH</h1>
+                    <div class="splash-subtitle">SURVIVE THE HORDE</div>
+                </div>
+                <button class="play-btn" id="play-btn">
+                    <span class="play-icon">▶</span>
+                    <span class="play-text">PLAY</span>
+                </button>
+                <div class="splash-hint">Click to start the rush!</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="game-container hidden" id="game-container">
         <!-- Header -->
         <header class="game-header">
             <h1 class="game-title">ZOMBIE RUSH</h1>
@@ -24,9 +51,31 @@
             </div>
         </header>
 
-        <!-- Bet Amount Display -->
-        <div class="bet-info-bar">
-            <span class="bet-info-text">Click on lanes to bet $10 | Click again to cash out</span>
+        <!-- Bet Amount Selector -->
+        <div class="bet-selector-bar">
+            <div class="bet-selector-label">
+                <span class="bet-label-icon">💰</span>
+                <span class="bet-label-text">BET AMOUNT</span>
+            </div>
+            <div class="bet-presets">
+                <button class="bet-preset" data-amount="5">$5</button>
+                <button class="bet-preset" data-amount="10">$10</button>
+                <button class="bet-preset active" data-amount="25">$25</button>
+                <button class="bet-preset" data-amount="50">$50</button>
+                <button class="bet-preset" data-amount="100">$100</button>
+            </div>
+            <div class="bet-custom">
+                <span class="bet-custom-label">Custom:</span>
+                <div class="bet-custom-input-wrapper">
+                    <span class="bet-currency">$</span>
+                    <input type="number" class="bet-custom-input" id="bet-custom-input" min="1" max="1000" placeholder="Enter">
+                </div>
+                <button class="bet-custom-set" id="bet-custom-set">SET</button>
+            </div>
+            <div class="bet-current">
+                <span class="bet-current-label">Current Bet:</span>
+                <span class="bet-current-amount" id="bet-current-amount">$25</span>
+            </div>
         </div>
 
         <!-- Mode Selection Tabs -->
@@ -171,6 +220,7 @@
                 <button class="btn-stop" id="btn-stop">⏹ STOP</button>
                 <button class="btn-admin" id="admin-toggle" title="Settings">⚙️ Settings</button>
                 <button class="btn-math" id="math-toggle" title="Math Verification">📊 Math</button>
+                <button class="btn-feedback" id="feedback-toggle" title="Leave Feedback">💬 Feedback</button>
             </div>
         </div>
 
@@ -322,6 +372,68 @@
                 <div class="result-icon" id="result-icon"></div>
                 <div class="result-text" id="result-text"></div>
                 <div class="result-amount" id="result-amount"></div>
+            </div>
+        </div>
+
+        <!-- Feedback Modal -->
+        <div class="feedback-overlay" id="feedback-overlay">
+            <div class="feedback-panel">
+                <div class="feedback-header">
+                    <h2>💬 Player Feedback</h2>
+                    <button class="feedback-close" id="feedback-close">✕</button>
+                </div>
+
+                <div class="feedback-tabs">
+                    <button class="feedback-tab active" data-tab="write">✏️ Write Feedback</button>
+                    <button class="feedback-tab" data-tab="view">📜 View All</button>
+                </div>
+
+                <!-- Write Feedback Tab -->
+                <div class="feedback-content" id="feedback-write-tab">
+                    <div class="feedback-form">
+                        <div class="rating-section">
+                            <label>Your Rating</label>
+                            <div class="star-rating" id="star-rating">
+                                <span class="star" data-rating="1">★</span>
+                                <span class="star" data-rating="2">★</span>
+                                <span class="star" data-rating="3">★</span>
+                                <span class="star" data-rating="4">★</span>
+                                <span class="star" data-rating="5">★</span>
+                            </div>
+                            <span class="rating-text" id="rating-text">Click to rate</span>
+                        </div>
+                        
+                        <div class="note-section">
+                            <label for="feedback-note">Your Note</label>
+                            <textarea id="feedback-note" placeholder="Share your thoughts about Zombie Rush..." maxlength="500"></textarea>
+                            <span class="char-count"><span id="char-count">0</span>/500</span>
+                        </div>
+
+                        <div class="name-section">
+                            <label for="feedback-name">Your Name (optional)</label>
+                            <input type="text" id="feedback-name" placeholder="Anonymous" maxlength="30">
+                        </div>
+
+                        <button class="btn-submit-feedback" id="btn-submit-feedback">🧟 Submit Feedback</button>
+                    </div>
+                </div>
+
+                <!-- View Feedback Tab -->
+                <div class="feedback-content hidden" id="feedback-view-tab">
+                    <div class="feedback-stats" id="feedback-stats">
+                        <div class="stat-item">
+                            <span class="stat-value" id="total-reviews">0</span>
+                            <span class="stat-label">Reviews</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value" id="avg-rating">—</span>
+                            <span class="stat-label">Avg Rating</span>
+                        </div>
+                    </div>
+                    <div class="feedback-list" id="feedback-list">
+                        <p class="no-feedback">No feedback yet. Be the first to share your thoughts!</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
