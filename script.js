@@ -651,7 +651,8 @@ const GameState = {
             explosionTimeout: null,   // Track explosion timeout to clear on respawn
             spawnTime: null,       // When zombie spawned
             activeTime: null,      // When zombie entered active zone
-            zombieType: 'slow'     // Current zombie type (for single/double modes)
+            zombieType: 'slow',    // Current zombie type (for single/double modes)
+            cashedOut: false       // Flag to preserve cash out message
         },
         medium: {
             state: LaneState.IDLE,
@@ -664,7 +665,8 @@ const GameState = {
             explosionTimeout: null,
             spawnTime: null,
             activeTime: null,
-            zombieType: 'medium'
+            zombieType: 'medium',
+            cashedOut: false
         },
         wild: {
             state: LaneState.IDLE,
@@ -677,7 +679,8 @@ const GameState = {
             explosionTimeout: null,
             spawnTime: null,
             activeTime: null,
-            zombieType: 'wild'
+            zombieType: 'wild',
+            cashedOut: false
         }
     }
 };
@@ -1451,11 +1454,15 @@ function cashOut(laneName) {
     const cashoutMultiplier = state.currentMultiplier;
     state.bet = 0;
     
+    // Set cashed out flag to preserve the message
+    state.cashedOut = true;
+    
     // Reset potential display visibility
     dom.potential.style.display = '';
     
-    // Update UI - show win amount in multiplier display
-    dom.multiplier.innerHTML = `<span class="multiplier-value">${cashoutMultiplier.toFixed(2)}x</span><span class="bet-win-value" style="color:#4ade80;text-shadow:0 0 15px rgba(74,222,128,1);">+$${formatMoney(winAmount)}</span>`;
+    // Update UI - show cash out message in the multiplier box (same place as "click to bet")
+    dom.multiplier.innerHTML = `<span class="cashed-out-msg">💰 CASHED OUT AT ${cashoutMultiplier.toFixed(2)}x <span class="cashout-win-amount">+$${formatMoney(winAmount)}</span></span>`;
+    dom.multiplier.classList.add('cashed-out');
     
     dom.element.classList.remove('has-bet');
     dom.element.classList.add('no-bet');
@@ -1464,9 +1471,6 @@ function cashOut(laneName) {
     
     dom.potential.innerHTML = `Won: <span class="bet-value">+$${formatMoney(profit)}</span>`;
     dom.potential.style.color = '#4ade80';
-    
-    // Show win notification
-    showResultPopup('win', `CASHED OUT at ${cashoutMultiplier.toFixed(2)}x`, winAmount);
     
     // Add to history
     addToHistory(laneName, 'win', cashoutMultiplier);
@@ -1533,6 +1537,10 @@ function spawnZombie(laneName, zombieType) {
     const state = GameState.lanes[laneName];
     const dom = DOM.lanes[laneName];
     
+    // Clear cashed out flag from previous round
+    state.cashedOut = false;
+    dom.multiplier.classList.remove('cashed-out');
+    
     // Set zombie type and get appropriate config
     state.zombieType = zombieType;
     const configKey = ZombieTypes[zombieType].configKey;
@@ -1558,10 +1566,19 @@ function spawnZombie(laneName, zombieType) {
     // Set state to safe zone
     state.state = LaneState.SAFE_ZONE;
     
+    // Disable transition for instant reset (prevents "dragging back" visual)
+    dom.zombieContainer.style.transition = 'none';
+    
     // Reset zombie visibility and position
     dom.zombie.classList.remove('hidden', 'dead', 'winner');
     dom.zombieContainer.style.left = '90%';
     hideExplosion(laneName);
+    
+    // Force reflow to apply the instant position change
+    void dom.zombieContainer.offsetWidth;
+    
+    // Re-enable transition for smooth gameplay movement
+    dom.zombieContainer.style.transition = '';
     
     // Add zombie type indicator badge
     addZombieTypeBadge(laneName, zombieType);
@@ -1615,6 +1632,8 @@ function resetLaneToIdle(laneName) {
     state.zombiePosition = 100;
     state.spawnTime = null;
     state.activeTime = null;
+    state.cashedOut = false;
+    dom.multiplier.classList.remove('cashed-out');
     
     // Hide zombie
     dom.zombie.classList.add('hidden');
@@ -1785,22 +1804,25 @@ function updateContinuousGame() {
             }
             
             // Update UI - show multiplier and bet value in multiplier display
-            if (state.bet > 0) {
-                const potentialWin = state.bet * state.currentMultiplier;
-                dom.multiplier.innerHTML = `<span class="multiplier-value">${state.currentMultiplier.toFixed(2)}x</span><span class="bet-win-value">$${formatMoney(potentialWin)}</span>`;
-                dom.potential.innerHTML = `<span class="multiplier-inline">${state.currentMultiplier.toFixed(2)}x</span><span class="bet-win-value">$${formatMoney(potentialWin)}</span><span class="click-cashout">CLICK TO CASH OUT</span>`;
-            } else {
-                dom.multiplier.textContent = state.currentMultiplier.toFixed(2) + 'x';
-                dom.potential.innerHTML = `<span class="multiplier-inline">${state.currentMultiplier.toFixed(2)}x</span><span class="potential-label">No bet placed</span>`;
-            }
-            
-            // Update multiplier color
-            if (state.currentMultiplier > config.maxMultiplier * 0.7) {
-                dom.multiplier.classList.add('danger');
-                dom.multiplier.classList.remove('hot');
-            } else if (state.currentMultiplier > config.maxMultiplier * 0.4) {
-                dom.multiplier.classList.add('hot');
-                dom.multiplier.classList.remove('danger');
+            // BUT don't overwrite if we just cashed out (preserve the cash out message)
+            if (!state.cashedOut) {
+                if (state.bet > 0) {
+                    const potentialWin = state.bet * state.currentMultiplier;
+                    dom.multiplier.innerHTML = `<span class="multiplier-value">${state.currentMultiplier.toFixed(2)}x</span><span class="bet-win-value">$${formatMoney(potentialWin)}</span>`;
+                    dom.potential.innerHTML = `<span class="multiplier-inline">${state.currentMultiplier.toFixed(2)}x</span><span class="bet-win-value">$${formatMoney(potentialWin)}</span><span class="click-cashout">CLICK TO CASH OUT</span>`;
+                } else {
+                    dom.multiplier.textContent = state.currentMultiplier.toFixed(2) + 'x';
+                    dom.potential.innerHTML = `<span class="multiplier-inline">${state.currentMultiplier.toFixed(2)}x</span><span class="potential-label">No bet placed</span>`;
+                }
+                
+                // Update multiplier color
+                if (state.currentMultiplier > config.maxMultiplier * 0.7) {
+                    dom.multiplier.classList.add('danger');
+                    dom.multiplier.classList.remove('hot');
+                } else if (state.currentMultiplier > config.maxMultiplier * 0.4) {
+                    dom.multiplier.classList.add('hot');
+                    dom.multiplier.classList.remove('danger');
+                }
             }
             
             // Update zombie position (continue from where safe zone ended)
@@ -1989,6 +2011,12 @@ function showWaveAnnouncement(zombieTypes) {
 function showResultPopup(type, text, amount) {
     const popup = DOM.resultPopup;
     
+    // Remove any existing active class first for clean animation
+    popup.classList.remove('active', 'win', 'loss', 'jackpot');
+    
+    // Force reflow for animation restart
+    void popup.offsetWidth;
+    
     popup.className = 'result-popup active ' + type;
     
     if (type === 'win') {
@@ -2002,9 +2030,10 @@ function showResultPopup(type, text, amount) {
     DOM.resultText.textContent = text;
     DOM.resultAmount.textContent = '+$' + formatMoney(amount);
     
+    // Toast shows briefly then fades out
     setTimeout(() => {
         popup.classList.remove('active');
-    }, 2500);
+    }, 2000);
 }
 
 // ============================================
@@ -2517,8 +2546,7 @@ const IntroScreen = {
     playBtn: null,
     skipBtn: null,
     gameContainer: null,
-    soundsStarted: false,
-    soundPrompt: null,
+    introMusic: null,
     
     init() {
         // Get DOM elements
@@ -2537,11 +2565,25 @@ const IntroScreen = {
             return;
         }
         
-        // Create sound prompt overlay
-        this.createSoundPrompt();
+        // Create intro music audio element
+        this.createIntroMusic();
         
-        // Listen for video end
+        // Start playing video and music immediately
+        this.startIntro();
+        
+        // Listen for video end - show splash when video ends
         this.video.addEventListener('ended', () => this.showSplash());
+        
+        // Listen for music end - if music ends before video, also show splash
+        if (this.introMusic) {
+            this.introMusic.addEventListener('ended', () => {
+                // Only show splash if video is still playing (music ended first)
+                if (!this.video.paused && !this.video.ended) {
+                    // Wait for video to end naturally, or show splash
+                    // Actually, let's just wait for video
+                }
+            });
+        }
         
         // Listen for video error (fallback to splash)
         this.video.addEventListener('error', () => {
@@ -2549,19 +2591,9 @@ const IntroScreen = {
             this.showSplash();
         });
         
-        // Skip button - only works after sound is enabled or prompt dismissed
+        // Skip button - skip to splash screen
         if (this.skipBtn) {
-            const self = this;
-            this.skipBtn.addEventListener('click', (e) => {
-                // If sound prompt is visible, enable sound first instead of skipping
-                if (self.soundPrompt && !self.soundPrompt.classList.contains('hidden')) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    self.enableSound();
-                    return;
-                }
-                self.showSplash();
-            });
+            this.skipBtn.addEventListener('click', () => this.showSplash());
         }
         
         // Play button - start the game
@@ -2584,10 +2616,7 @@ const IntroScreen = {
             if (e.key === 'Enter' || e.key === ' ') {
                 if (this.introScreen && !this.introScreen.classList.contains('hidden')) {
                     e.preventDefault();
-                    // If sound prompt is visible, enable sound first
-                    if (this.soundPrompt && !this.soundPrompt.classList.contains('hidden')) {
-                        this.enableSound();
-                    } else if (this.videoContainer && !this.videoContainer.classList.contains('hidden')) {
+                    if (this.videoContainer && !this.videoContainer.classList.contains('hidden')) {
                         this.showSplash();
                     } else if (this.splashScreen && !this.splashScreen.classList.contains('hidden')) {
                         this.startGame();
@@ -2596,138 +2625,46 @@ const IntroScreen = {
             }
         });
         
-        console.log('🎬 Intro screen initialized - click to enable zombie sounds...');
+        console.log('🎬 Intro starting - video and music playing...');
     },
     
-    createSoundPrompt() {
-        // Create overlay prompt to click for sound
-        this.soundPrompt = document.createElement('div');
-        this.soundPrompt.className = 'sound-prompt-overlay';
-        this.soundPrompt.innerHTML = `
-            <div class="sound-prompt-content">
-                <div class="sound-prompt-icon">🔊</div>
-                <div class="sound-prompt-text">CLICK TO ENABLE SOUND</div>
-                <div class="sound-prompt-hint">Experience the zombie horde!</div>
-            </div>
-        `;
-        
-        // Add styles
-        const style = document.createElement('style');
-        style.textContent = `
-            .sound-prompt-overlay {
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0, 0, 0, 0.7);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 9999;
-                cursor: pointer;
-                animation: pulse-bg 2s ease-in-out infinite;
-            }
-            
-            @keyframes pulse-bg {
-                0%, 100% { background: rgba(0, 0, 0, 0.7); }
-                50% { background: rgba(20, 0, 0, 0.8); }
-            }
-            
-            .sound-prompt-overlay.hidden {
-                display: none !important;
-            }
-            
-            .sound-prompt-content {
-                text-align: center;
-                animation: bounce-in 0.5s ease-out;
-                pointer-events: none;
-            }
-            
-            @keyframes bounce-in {
-                0% { transform: scale(0.5); opacity: 0; }
-                70% { transform: scale(1.1); }
-                100% { transform: scale(1); opacity: 1; }
-            }
-            
-            .sound-prompt-icon {
-                font-size: 4rem;
-                margin-bottom: 1rem;
-                animation: pulse-icon 1s ease-in-out infinite;
-            }
-            
-            @keyframes pulse-icon {
-                0%, 100% { transform: scale(1); }
-                50% { transform: scale(1.2); }
-            }
-            
-            .sound-prompt-text {
-                font-family: 'Creepster', cursive;
-                font-size: 2rem;
-                color: #4ade80;
-                text-shadow: 0 0 20px rgba(74, 222, 128, 0.8);
-                letter-spacing: 3px;
-                margin-bottom: 0.5rem;
-            }
-            
-            .sound-prompt-hint {
-                font-family: 'Bangers', cursive;
-                font-size: 1rem;
-                color: #94a3b8;
-                letter-spacing: 2px;
-            }
-            
-            /* Hide skip button when sound prompt is visible */
-            .intro-video-container:has(.sound-prompt-overlay:not(.hidden)) .skip-video-btn {
-                pointer-events: none;
-                opacity: 0.3;
-            }
-        `;
-        document.head.appendChild(style);
-        
-        // Add to video container
-        if (this.videoContainer) {
-            this.videoContainer.appendChild(this.soundPrompt);
-            
-            // Also add click handler on video container itself for backup
-            const self = this;
-            this.videoContainer.addEventListener('click', (e) => {
-                if (self.soundPrompt && !self.soundPrompt.classList.contains('hidden')) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    self.enableSound();
-                }
-            }, true);
-        }
-        
-        // Click handler to enable sound - capture phase to get it first
-        this.soundPrompt.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-            this.enableSound();
-        }, true);
+    createIntroMusic() {
+        // Create audio element for intro music
+        this.introMusic = document.createElement('audio');
+        this.introMusic.src = 'zombie_rush_pvz_style_theme.mp3';
+        this.introMusic.loop = false;
+        this.introMusic.volume = 0.6;
     },
     
-    enableSound() {
-        if (this.soundsStarted) return;
-        
-        this.soundsStarted = true;
-        
-        // Hide prompt
-        if (this.soundPrompt) {
-            this.soundPrompt.classList.add('hidden');
+    startIntro() {
+        // Start video with sound
+        if (this.video) {
+            this.video.muted = false;
+            this.video.volume = 0.7;
+            this.video.play().catch(e => {
+                console.log('Video autoplay blocked, trying muted:', e);
+                // If autoplay fails, try muted
+                this.video.muted = true;
+                this.video.play();
+            });
         }
         
-        // Start zombie sounds
-        ZombieIntroSounds.start();
+        // Start background music
+        if (this.introMusic) {
+            this.introMusic.play().catch(e => {
+                console.log('Music autoplay blocked:', e);
+            });
+        }
         
-        console.log('🔊 Sound enabled - zombie horde incoming!');
+        console.log('🎵 Intro video and music started');
     },
     
     showSplash() {
-        // Stop zombie intro sounds
-        ZombieIntroSounds.stop();
+        // Stop intro music
+        if (this.introMusic) {
+            this.introMusic.pause();
+            this.introMusic.currentTime = 0;
+        }
         
         // Stop and hide video
         if (this.video) {
@@ -2746,8 +2683,11 @@ const IntroScreen = {
     },
     
     startGame() {
-        // Stop zombie intro sounds (in case still playing)
-        ZombieIntroSounds.stop();
+        // Stop intro music (in case still playing)
+        if (this.introMusic) {
+            this.introMusic.pause();
+            this.introMusic.currentTime = 0;
+        }
         
         // Hide intro screen completely
         if (this.introScreen) {
