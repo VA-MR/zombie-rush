@@ -1,0 +1,23 @@
+<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    @keyframes boom { 0% { transform: scale(0.5); opacity: 0; } 20% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+    @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+    .splat { animation: boom 0.4s ease-out forwards; transform-origin: center; }
+    .text { animation: shake 0.2s infinite; }
+  </style>
+  <defs>
+    <radialGradient id="explosionGrad" cx="50%" cy="50%">
+      <stop offset="0%" stop-color="#FFFF00"/>
+      <stop offset="50%" stop-color="#FF6600"/>
+      <stop offset="100%" stop-color="#FF0000"/>
+    </radialGradient>
+  </defs>
+  <g class="splat">
+    <!-- Explosion star burst -->
+    <polygon points="50,5 58,35 90,35 65,55 75,90 50,70 25,90 35,55 10,35 42,35" fill="url(#explosionGrad)" stroke="#FF0000" stroke-width="2"/>
+    <!-- Inner glow -->
+    <circle cx="50" cy="50" r="20" fill="#FFFF00" opacity="0.8"/>
+    <!-- CRASH text -->
+    <text class="text" x="50" y="55" font-family="Arial Black, sans-serif" font-weight="bold" font-size="12" fill="#8B0000" text-anchor="middle">CRASH!</text>
+  </g>
+</svg>

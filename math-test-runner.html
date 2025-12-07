@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧟 Zombie Rush - Math Verification</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #4ade80;
+            margin-bottom: 10px;
+            font-size: 2rem;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #4ade80, #22c55e);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(74, 222, 128, 0.4);
+        }
+        
+        button:disabled {
+            background: #444;
+            color: #888;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        button.secondary {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+        }
+        
+        button.secondary:hover {
+            box-shadow: 0 5px 20px rgba(99, 102, 241, 0.4);
+        }
+        
+        .config {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .config h3 {
+            color: #ffd700;
+            margin-bottom: 15px;
+        }
+        
+        .config-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .config-row label {
+            color: #aaa;
+        }
+        
+        .config-row input {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 8px;
+            color: #fff;
+            width: 120px;
+            text-align: right;
+            font-family: inherit;
+        }
+        
+        .results-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .result-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .result-card h3 {
+            color: #4ade80;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .result-card.safe h3 { color: #4ade80; }
+        .result-card.medium h3 { color: #fbbf24; }
+        .result-card.wild h3 { color: #ef4444; }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        
+        th, td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        th {
+            color: #888;
+            font-weight: normal;
+            text-transform: uppercase;
+            font-size: 11px;
+        }
+        
+        .good { color: #4ade80; }
+        .warning { color: #fbbf24; }
+        .bad { color: #ef4444; }
+        
+        .status-bar {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .progress-bar {
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ade80, #22c55e);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .formula-box {
+            background: rgba(0, 0, 0, 0.4);
+            border-left: 3px solid #6366f1;
+            padding: 15px;
+            margin: 15px 0;
+            font-size: 13px;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .formula-box code {
+            color: #ffd700;
+            font-family: inherit;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .summary-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .summary-item .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4ade80;
+        }
+        
+        .summary-item .label {
+            font-size: 11px;
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        #log {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+            font-family: inherit;
+        }
+        
+        #log .log-entry {
+            margin-bottom: 5px;
+            padding: 3px 0;
+        }
+        
+        #log .log-entry.info { color: #6366f1; }
+        #log .log-entry.success { color: #4ade80; }
+        #log .log-entry.warning { color: #fbbf24; }
+        #log .log-entry.error { color: #ef4444; }
+    </style>
+</head>
+<body>
+    <h1>🧟 Zombie Rush Math Verification</h1>
+    <p class="subtitle">Statistical tests to verify game mathematics</p>
+    
+    <div class="config">
+        <h3>⚙️ Test Configuration</h3>
+        <div class="config-row">
+            <label>Iterations per test:</label>
+            <input type="number" id="iterations" value="50000" min="1000" max="500000">
+        </div>
+    </div>
+    
+    <div class="controls">
+        <button onclick="runAllTests()" id="btn-all">🚀 Run All Tests</button>
+        <button onclick="runDistributionTest()" class="secondary">📊 Distribution</button>
+        <button onclick="runEVTest()" class="secondary">💰 Expected Value</button>
+        <button onclick="runHouseEdgeTest()" class="secondary">🏠 House Edge</button>
+        <button onclick="detectIssues()" class="secondary">🔍 Detect Issues</button>
+    </div>
+    
+    <div class="status-bar">
+        <span id="status">Ready to run tests</span>
+        <div class="progress-bar">
+            <div class="progress-bar-fill" id="progress"></div>
+        </div>
+    </div>
+    
+    <div class="results-container" id="results">
+        <!-- Results will be populated here -->
+    </div>
+    
+    <div id="log">
+        <div class="log-entry info">Math test suite loaded. Click a button to run tests.</div>
+    </div>
+
+    <script>
+        // ============================================
+        // GAME CONFIG (Mirror of main game)
+        // ============================================
+        const TestConfig = {
+            targetDuration: 10,  // All lanes reach max in 10 seconds
+            lanes: {
+                // Natural jackpot rate = (1-houseEdge)/maxMultiplier
+                safe: {
+                    maxMultiplier: 4.0,
+                    houseEdge: 0.05,          // 5% house edge
+                    speedConstant: 0.1386     // ln(4)/10 - reaches 4x in 10s
+                    // Natural jackpot = 0.95/4 = 23.75%
+                },
+                medium: {
+                    maxMultiplier: 10.0,
+                    houseEdge: 0.05,          // 5% house edge
+                    speedConstant: 0.2303     // ln(10)/10 - reaches 10x in 10s
+                    // Natural jackpot = 0.95/10 = 9.5%
+                },
+                wild: {
+                    maxMultiplier: 50.0,
+                    houseEdge: 0.05,          // 5% house edge
+                    speedConstant: 0.3912     // ln(50)/10 - reaches 50x in 10s
+                    // Natural jackpot = 0.95/50 = 1.9%
+                }
+            }
+        };
+        
+        // ============================================
+        // CORE MATH FUNCTIONS
+        // ============================================
+        
+        /**
+         * Provably-fair crash point calculation
+         * Formula: crashPoint = (1 - houseEdge) / random
+         * Guarantees house edge at ALL cashout points
+         */
+        function calculateCrashPoint(laneName) {
+            const config = TestConfig.lanes[laneName];
+            
+            // Single random for provably fair result
+            const random = Math.random();
+            const safeRandom = Math.max(random, 0.0001);
+            
+            // Standard crash formula
+            const crashPoint = (1 - config.houseEdge) / safeRandom;
+            
+            // Cap at max multiplier
+            return Math.min(crashPoint, config.maxMultiplier);
+        }
+        
+        function calculateMultiplier(elapsedMs, speedConstant) {
+            return Math.pow(Math.E, speedConstant * elapsedMs / 1000);
+        }
+        
+        // ============================================
+        // UI HELPERS
+        // ============================================
+        
+        function log(message, type = 'info') {
+            const logEl = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logEl.insertBefore(entry, logEl.firstChild);
+        }
+        
+        function setStatus(text) {
+            document.getElementById('status').textContent = text;
+        }
+        
+        function setProgress(percent) {
+            document.getElementById('progress').style.width = percent + '%';
+        }
+        
+        function getIterations() {
+            return parseInt(document.getElementById('iterations').value) || 50000;
+        }
+        
+        function disableButtons(disabled) {
+            document.querySelectorAll('button').forEach(btn => btn.disabled = disabled);
+        }
+        
+        // ============================================
+        // TESTS
+        // ============================================
+        
+        async function testCrashPointDistribution(laneName, iterations) {
+            const config = TestConfig.lanes[laneName];
+            let jackpots = 0;
+            let instantCrashes = 0;
+            let crashSum = 0;
+            
+            for (let i = 0; i < iterations; i++) {
+                const crash = calculateCrashPoint(laneName);
+                crashSum += crash;
+                
+                if (crash >= config.maxMultiplier) jackpots++;
+                else if (crash <= 1.01) instantCrashes++;
+                
+                if (i % 10000 === 0) {
+                    await new Promise(r => setTimeout(r, 0)); // Yield
+                }
+            }
+            
+            // Natural jackpot rate = (1-houseEdge)/maxMultiplier
+            const naturalJackpotRate = (1 - config.houseEdge) / config.maxMultiplier;
+            
+            return {
+                jackpotRate: jackpots / iterations,
+                instantCrashRate: instantCrashes / iterations,
+                avgCrash: crashSum / iterations,
+                expectedJackpot: naturalJackpotRate,
+                expectedInstant: 0  // No separate instant crash with new formula
+            };
+        }
+        
+        async function testExpectedValue(laneName, targetCashout, iterations) {
+            let wins = 0;
+            let totalReturn = 0;
+            
+            for (let i = 0; i < iterations; i++) {
+                const crash = calculateCrashPoint(laneName);
+                if (crash >= targetCashout) {
+                    wins++;
+                    totalReturn += targetCashout;
+                }
+                
+                if (i % 10000 === 0) {
+                    await new Promise(r => setTimeout(r, 0));
+                }
+            }
+            
+            const ev = totalReturn / iterations;
+            const houseEdge = (1 - ev) * 100;
+            
+            return {
+                winRate: wins / iterations,
+                expectedReturn: ev,
+                houseEdge: houseEdge
+            };
+        }
+        
+        // ============================================
+        // TEST RUNNERS
+        // ============================================
+        
+        async function runDistributionTest() {
+            disableButtons(true);
+            const iterations = getIterations();
+            setStatus('Running distribution test...');
+            log(`Starting distribution test with ${iterations.toLocaleString()} iterations`, 'info');
+            
+            const results = document.getElementById('results');
+            results.innerHTML = '';
+            
+            const lanes = ['safe', 'medium', 'wild'];
+            
+            for (let i = 0; i < lanes.length; i++) {
+                const lane = lanes[i];
+                setProgress((i / lanes.length) * 100);
+                setStatus(`Testing ${lane} lane...`);
+                
+                const result = await testCrashPointDistribution(lane, iterations);
+                const config = TestConfig.lanes[lane];
+                
+                const jackpotDiff = Math.abs(result.jackpotRate - result.expectedJackpot);
+                const instantDiff = Math.abs(result.instantCrashRate - result.expectedInstant);
+                
+                const card = document.createElement('div');
+                card.className = `result-card ${lane}`;
+                card.innerHTML = `
+                    <h3>📊 ${lane.toUpperCase()} Lane Distribution</h3>
+                    <table>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Actual</th>
+                            <th>Expected</th>
+                            <th>Status</th>
+                        </tr>
+                        <tr>
+                            <td>Jackpot Rate</td>
+                            <td>${(result.jackpotRate * 100).toFixed(2)}%</td>
+                            <td>${(result.expectedJackpot * 100).toFixed(2)}%</td>
+                            <td class="${jackpotDiff < 0.01 ? 'good' : jackpotDiff < 0.02 ? 'warning' : 'bad'}">
+                                ${jackpotDiff < 0.01 ? '✓' : jackpotDiff < 0.02 ? '~' : '✗'}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Instant Crash</td>
+                            <td>${(result.instantCrashRate * 100).toFixed(2)}%</td>
+                            <td>${(result.expectedInstant * 100).toFixed(2)}%</td>
+                            <td class="${instantDiff < 0.01 ? 'good' : instantDiff < 0.02 ? 'warning' : 'bad'}">
+                                ${instantDiff < 0.01 ? '✓' : instantDiff < 0.02 ? '~' : '✗'}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Average Crash</td>
+                            <td colspan="2">${result.avgCrash.toFixed(4)}x</td>
+                            <td>—</td>
+                        </tr>
+                    </table>
+                `;
+                results.appendChild(card);
+                
+                log(`${lane}: Jackpot ${(result.jackpotRate * 100).toFixed(2)}% (exp: ${(result.expectedJackpot * 100)}%), Instant ${(result.instantCrashRate * 100).toFixed(2)}%`, 'success');
+            }
+            
+            setProgress(100);
+            setStatus('Distribution test complete!');
+            disableButtons(false);
+        }
+        
+        async function runEVTest() {
+            disableButtons(true);
+            const iterations = getIterations();
+            setStatus('Running expected value test...');
+            log(`Starting EV test with ${iterations.toLocaleString()} iterations`, 'info');
+            
+            const results = document.getElementById('results');
+            results.innerHTML = '';
+            
+            const cashoutTargets = [1.5, 2.0, 3.0, 5.0, 10.0];
+            const lanes = ['safe', 'medium', 'wild'];
+            
+            for (let i = 0; i < lanes.length; i++) {
+                const lane = lanes[i];
+                const config = TestConfig.lanes[lane];
+                
+                setProgress((i / lanes.length) * 100);
+                setStatus(`Testing ${lane} lane EV...`);
+                
+                let tableRows = '';
+                
+                for (const target of cashoutTargets) {
+                    if (target > config.maxMultiplier) continue;
+                    
+                    const result = await testExpectedValue(lane, target, iterations);
+                    const evColor = result.houseEdge > 0 && result.houseEdge < 10 ? 'good' : 
+                                   result.houseEdge < 0 ? 'bad' : 'warning';
+                    
+                    tableRows += `
+                        <tr>
+                            <td>${target}x</td>
+                            <td>${(result.winRate * 100).toFixed(2)}%</td>
+                            <td>${result.expectedReturn.toFixed(4)}</td>
+                            <td class="${evColor}">${result.houseEdge.toFixed(2)}%</td>
+                        </tr>
+                    `;
+                }
+                
+                const card = document.createElement('div');
+                card.className = `result-card ${lane}`;
+                card.innerHTML = `
+                    <h3>💰 ${lane.toUpperCase()} Lane Expected Value</h3>
+                    <table>
+                        <tr>
+                            <th>Cashout</th>
+                            <th>Win Rate</th>
+                            <th>EV per $1</th>
+                            <th>House Edge</th>
+                        </tr>
+                        ${tableRows}
+                    </table>
+                    <div class="formula-box">
+                        <strong>Formula:</strong> House Edge = <code>1 - (Win Rate × Cashout Multiplier)</code>
+                    </div>
+                `;
+                results.appendChild(card);
+                
+                log(`${lane} EV analysis complete`, 'success');
+            }
+            
+            setProgress(100);
+            setStatus('Expected value test complete!');
+            disableButtons(false);
+        }
+        
+        async function runHouseEdgeTest() {
+            disableButtons(true);
+            const iterations = getIterations();
+            setStatus('Running house edge verification...');
+            log(`Starting house edge test with ${iterations.toLocaleString()} iterations`, 'info');
+            
+            const results = document.getElementById('results');
+            results.innerHTML = '';
+            
+            // Formula explanation card
+            const formulaCard = document.createElement('div');
+            formulaCard.className = 'result-card';
+            formulaCard.innerHTML = `
+                <h3>📐 Crash Point Formula Analysis</h3>
+                <div class="formula-box">
+                    <strong>Current Formula:</strong><br>
+                    <code>crashPoint = 1 / (1 - random × (1 - houseEdge))</code>
+                </div>
+                <div class="formula-box">
+                    <strong>Probability Distribution:</strong><br>
+                    <code>P(crash > x) = (1/x - houseEdge) / (1 - houseEdge)</code><br>
+                    <small>For the continuous part (excluding jackpot/instant crash)</small>
+                </div>
+                <div class="formula-box">
+                    <strong>Expected Theoretical House Edge:</strong><br>
+                    At any cashout X: <code>Edge ≈ houseEdge × X</code>
+                </div>
+            `;
+            results.appendChild(formulaCard);
+            
+            // Test each lane
+            const lanes = ['safe', 'medium', 'wild'];
+            
+            for (let i = 0; i < lanes.length; i++) {
+                const lane = lanes[i];
+                const config = TestConfig.lanes[lane];
+                
+                setProgress((i / lanes.length) * 100);
+                setStatus(`Testing ${lane} house edge...`);
+                
+                // Test at 2x cashout
+                const result = await testExpectedValue(lane, 2.0, iterations);
+                
+                const card = document.createElement('div');
+                card.className = `result-card ${lane}`;
+                card.innerHTML = `
+                    <h3>🏠 ${lane.toUpperCase()} Lane House Edge</h3>
+                    <div class="summary-grid">
+                        <div class="summary-item">
+                            <div class="value">${(config.houseEdge * 100).toFixed(1)}%</div>
+                            <div class="label">Configured Edge</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="value" style="color: ${Math.abs(result.houseEdge - 5) < 3 ? '#4ade80' : '#ef4444'}">${result.houseEdge.toFixed(2)}%</div>
+                            <div class="label">Actual @ 2x</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="value">${(result.winRate * 100).toFixed(1)}%</div>
+                            <div class="label">Win Rate @ 2x</div>
+                        </div>
+                    </div>
+                    <table style="margin-top: 15px;">
+                        <tr>
+                            <th>Expected Win Rate @ 2x</th>
+                            <td>${((1 - config.houseEdge) / 2 * 100).toFixed(2)}%</td>
+                        </tr>
+                        <tr>
+                            <th>Max Multiplier</th>
+                            <td>${config.maxMultiplier}x</td>
+                        </tr>
+                        <tr>
+                            <th>Jackpot Chance</th>
+                            <td>${(config.jackpotChance * 100).toFixed(1)}%</td>
+                        </tr>
+                    </table>
+                `;
+                results.appendChild(card);
+                
+                log(`${lane}: Configured ${(config.houseEdge * 100)}%, Actual ${result.houseEdge.toFixed(2)}%`, 
+                    Math.abs(result.houseEdge - 5) < 3 ? 'success' : 'warning');
+            }
+            
+            setProgress(100);
+            setStatus('House edge verification complete!');
+            disableButtons(false);
+        }
+        
+        async function detectIssues() {
+            disableButtons(true);
+            const iterations = getIterations();
+            setStatus('Scanning for mathematical issues...');
+            log('Starting issue detection...', 'info');
+            
+            const results = document.getElementById('results');
+            results.innerHTML = '';
+            
+            const issues = [];
+            
+            // Test each lane
+            for (const lane of ['safe', 'medium', 'wild']) {
+                const config = TestConfig.lanes[lane];
+                
+                // Test distribution
+                const distResult = await testCrashPointDistribution(lane, iterations);
+                
+                // Check jackpot accuracy
+                const jackpotDiff = Math.abs(distResult.jackpotRate - config.jackpotChance);
+                if (jackpotDiff > 0.015) {
+                    issues.push({
+                        severity: 'MEDIUM',
+                        lane: lane.toUpperCase(),
+                        issue: `Jackpot rate off by ${(jackpotDiff * 100).toFixed(2)}%`
+                    });
+                }
+                
+                // Check instant crash accuracy
+                const instantDiff = Math.abs(distResult.instantCrashRate - config.houseEdge);
+                if (instantDiff > 0.015) {
+                    issues.push({
+                        severity: 'MEDIUM',
+                        lane: lane.toUpperCase(),
+                        issue: `Instant crash rate off by ${(instantDiff * 100).toFixed(2)}%`
+                    });
+                }
+                
+                // Check house edge at 2x
+                const evResult = await testExpectedValue(lane, 2.0, iterations);
+                const expectedEdge = config.houseEdge * 100;
+                const edgeDiff = Math.abs(evResult.houseEdge - expectedEdge);
+                
+                if (edgeDiff > 5) {
+                    issues.push({
+                        severity: 'HIGH',
+                        lane: lane.toUpperCase(),
+                        issue: `House edge mismatch: expected ~${expectedEdge}%, got ${evResult.houseEdge.toFixed(2)}%`
+                    });
+                }
+            }
+            
+            // Check for double random issue
+            issues.push({
+                severity: 'INFO',
+                lane: 'ALL',
+                issue: 'Uses 2 separate Math.random() calls - intentional but unusual'
+            });
+            
+            const issueCard = document.createElement('div');
+            issueCard.className = 'result-card';
+            
+            let issueRows = '';
+            if (issues.length === 0) {
+                issueRows = '<tr><td colspan="3" class="good">✓ No significant issues detected!</td></tr>';
+            } else {
+                issues.forEach(issue => {
+                    const colorClass = issue.severity === 'HIGH' ? 'bad' : 
+                                      issue.severity === 'MEDIUM' ? 'warning' : 'good';
+                    issueRows += `
+                        <tr>
+                            <td class="${colorClass}">${issue.severity}</td>
+                            <td>${issue.lane}</td>
+                            <td>${issue.issue}</td>
+                        </tr>
+                    `;
+                });
+            }
+            
+            issueCard.innerHTML = `
+                <h3>🔍 Issue Detection Results</h3>
+                <table>
+                    <tr>
+                        <th>Severity</th>
+                        <th>Lane</th>
+                        <th>Issue</th>
+                    </tr>
+                    ${issueRows}
+                </table>
+            `;
+            results.appendChild(issueCard);
+            
+            issues.forEach(issue => {
+                log(`[${issue.severity}] ${issue.lane}: ${issue.issue}`, 
+                    issue.severity === 'HIGH' ? 'error' : issue.severity === 'MEDIUM' ? 'warning' : 'info');
+            });
+            
+            setProgress(100);
+            setStatus('Issue detection complete!');
+            disableButtons(false);
+        }
+        
+        async function runAllTests() {
+            await runDistributionTest();
+            await runEVTest();
+            await runHouseEdgeTest();
+            await detectIssues();
+            log('All tests complete!', 'success');
+        }
+    </script>
+</body>
+</html>
+

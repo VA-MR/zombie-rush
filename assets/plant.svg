@@ -1,0 +1,24 @@
+<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    @keyframes shoot { 0% { transform: scale(1); } 50% { transform: scale(0.9, 1.1); } 100% { transform: scale(1); } }
+    @keyframes bob { 0% { transform: translateY(0px); } 50% { transform: translateY(2px); } 100% { transform: translateY(0px); } }
+    .head { animation: bob 2s infinite ease-in-out; }
+    .snout { animation: shoot 1s infinite; transform-origin: center; }
+  </style>
+  <!-- Stem -->
+  <path d="M50 90 Q50 60 45 50" stroke="#006400" stroke-width="4" fill="none"/>
+  <!-- Leaves -->
+  <ellipse cx="30" cy="90" rx="15" ry="8" fill="#228B22" />
+  <ellipse cx="70" cy="90" rx="15" ry="8" fill="#228B22" />
+  <!-- Head with shooting animation -->
+  <g class="head">
+    <circle cx="40" cy="40" r="20" fill="#32CD32" stroke="#006400" stroke-width="2"/>
+    <rect class="snout" x="50" y="25" width="25" height="30" rx="5" fill="#32CD32" stroke="#006400" stroke-width="2"/>
+    <ellipse cx="75" cy="40" rx="5" ry="10" fill="black" />
+    <!-- Eyes -->
+    <circle cx="35" cy="35" r="5" fill="white"/>
+    <circle cx="35" cy="35" r="2" fill="black"/>
+    <circle cx="45" cy="35" r="5" fill="white"/>
+    <circle cx="45" cy="35" r="2" fill="black"/>
+  </g>
+</svg>

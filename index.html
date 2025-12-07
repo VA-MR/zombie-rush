@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧟 Zombie Rush</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Bangers&family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="game-container">
+        <!-- Header -->
+        <header class="game-header">
+            <h1 class="game-title">ZOMBIE RUSH</h1>
+            <div class="header-controls">
+                <button class="music-toggle" id="music-toggle" title="Toggle Music">
+                    <span class="music-icon" id="music-icon">🔇</span>
+                    <span class="music-label" id="music-label">Music Off</span>
+                </button>
+                <div class="balance-display">
+                    <span class="coin-icon">💰</span>
+                    <span class="balance-amount">$<span id="balance">1000.00</span></span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Bet Amount Display -->
+        <div class="bet-info-bar">
+            <span class="bet-info-text">Click on lanes to bet $10 | Click again to cash out</span>
+        </div>
+
+        <!-- Mode Selection Tabs -->
+        <div class="mode-tabs">
+            <button class="mode-tab" data-mode="single">Single Lane</button>
+            <button class="mode-tab" data-mode="double">Double Lane</button>
+            <button class="mode-tab active" data-mode="triple">Triple Lane</button>
+            <div id="wave-announcement" class="wave-announcement"></div>
+        </div>
+
+        <!-- Game Lanes -->
+        <div class="lanes-container">
+            <!-- Safe Lane -->
+            <div class="lane" data-lane="safe">
+                <div class="lane-background safe-bg"></div>
+                <div class="bet-badge" id="bet-badge-safe">BET: $10</div>
+                <div class="lane-content">
+                    <div class="lane-header">
+                        <span class="lane-label safe-label" id="lane-label-safe">🌱 SAFE</span>
+                        <span class="lane-info" id="lane-info-safe">Max 4x</span>
+                    </div>
+                    <div class="game-area" id="game-area-safe">
+                        <img src="assets/plant.svg" class="plant" alt="Plant">
+                        <div class="track">
+                            <div class="multiplier-display">
+                                <span class="multiplier" id="multiplier-safe">—</span>
+                            </div>
+                        </div>
+                        <div class="zombie-container" id="zombie-container-safe">
+                            <img src="assets/zombie.svg" class="zombie hidden" id="zombie-safe" alt="Zombie">
+                            <img src="assets/explosion.svg" class="explosion" id="explosion-safe" alt="Explosion">
+                        </div>
+                    </div>
+                    <div class="lane-status">
+                        <div class="potential-win" id="potential-safe"></div>
+                        <div class="bet-prompt" id="bet-prompt-safe">
+                            <span class="bet-icon">💰</span>
+                            <span>CLICK TO BET</span>
+                            <span class="bet-amount-prompt">$10</span>
+                        </div>
+                        <button class="cashout-btn" id="cashout-btn-safe">
+                            <span class="cashout-amount" id="cashout-amount-safe">$0.00</span>
+                            <span class="cashout-label">CLICK TO CASH OUT</span>
+                        </button>
+                        <div class="no-bet-msg" id="no-bet-msg-safe">NO BET PLACED</div>
+                    </div>
+                    <div class="history-bar" id="history-safe">
+                        <div class="history-label">📜 Round History</div>
+                        <div class="history-bubbles" id="bubbles-safe"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Medium Lane -->
+            <div class="lane" data-lane="medium">
+                <div class="lane-background medium-bg"></div>
+                <div class="bet-badge" id="bet-badge-medium">BET: $10</div>
+                <div class="lane-content">
+                    <div class="lane-header">
+                        <span class="lane-label medium-label" id="lane-label-medium">🏜️ MEDIUM</span>
+                        <span class="lane-info" id="lane-info-medium">Max 10x</span>
+                    </div>
+                    <div class="game-area" id="game-area-medium">
+                        <img src="assets/plant.svg" class="plant" alt="Plant">
+                        <div class="track">
+                            <div class="multiplier-display">
+                                <span class="multiplier" id="multiplier-medium">—</span>
+                            </div>
+                        </div>
+                        <div class="zombie-container" id="zombie-container-medium">
+                            <img src="assets/zombie.svg" class="zombie hidden" id="zombie-medium" alt="Zombie">
+                            <img src="assets/explosion.svg" class="explosion" id="explosion-medium" alt="Explosion">
+                        </div>
+                    </div>
+                    <div class="lane-status">
+                        <div class="potential-win" id="potential-medium"></div>
+                        <div class="bet-prompt" id="bet-prompt-medium">
+                            <span class="bet-icon">💰</span>
+                            <span>CLICK TO BET</span>
+                            <span class="bet-amount-prompt">$10</span>
+                        </div>
+                        <button class="cashout-btn" id="cashout-btn-medium">
+                            <span class="cashout-amount" id="cashout-amount-medium">$0.00</span>
+                            <span class="cashout-label">CLICK TO CASH OUT</span>
+                        </button>
+                        <div class="no-bet-msg" id="no-bet-msg-medium">NO BET PLACED</div>
+                    </div>
+                    <div class="history-bar" id="history-medium">
+                        <div class="history-label">📜 Round History</div>
+                        <div class="history-bubbles" id="bubbles-medium"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Wild Lane -->
+            <div class="lane" data-lane="wild">
+                <div class="lane-background wild-bg"></div>
+                <div class="bet-badge" id="bet-badge-wild">BET: $10</div>
+                <div class="lane-content">
+                    <div class="lane-header">
+                        <span class="lane-label wild-label" id="lane-label-wild">🌙 WILD</span>
+                        <span class="lane-info" id="lane-info-wild">Max 50x</span>
+                    </div>
+                    <div class="game-area" id="game-area-wild">
+                        <img src="assets/plant.svg" class="plant" alt="Plant">
+                        <div class="track">
+                            <div class="multiplier-display">
+                                <span class="multiplier" id="multiplier-wild">—</span>
+                            </div>
+                        </div>
+                        <div class="zombie-container" id="zombie-container-wild">
+                            <img src="assets/zombie.svg" class="zombie hidden" id="zombie-wild" alt="Zombie">
+                            <img src="assets/explosion.svg" class="explosion" id="explosion-wild" alt="Explosion">
+                        </div>
+                    </div>
+                    <div class="lane-status">
+                        <div class="potential-win" id="potential-wild"></div>
+                        <div class="bet-prompt" id="bet-prompt-wild">
+                            <span class="bet-icon">💰</span>
+                            <span>CLICK TO BET</span>
+                            <span class="bet-amount-prompt">$10</span>
+                        </div>
+                        <button class="cashout-btn" id="cashout-btn-wild">
+                            <span class="cashout-amount" id="cashout-amount-wild">$0.00</span>
+                            <span class="cashout-label">CLICK TO CASH OUT</span>
+                        </button>
+                        <div class="no-bet-msg" id="no-bet-msg-wild">NO BET PLACED</div>
+                    </div>
+                    <div class="history-bar" id="history-wild">
+                        <div class="history-label">📜 Round History</div>
+                        <div class="history-bubbles" id="bubbles-wild"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Status -->
+        <div class="game-status">
+            <div class="status-text" id="status-text">Click START to begin!</div>
+            <button class="btn-start" id="btn-start">▶ START</button>
+            <button class="btn-stop" id="btn-stop">⏹ STOP</button>
+        </div>
+
+        <!-- Admin Panel Toggle -->
+        <button class="admin-toggle" id="admin-toggle">⚙️</button>
+
+        <!-- Admin Panel Modal -->
+        <div class="admin-overlay" id="admin-overlay">
+            <div class="admin-panel">
+                <div class="admin-header">
+                    <h2>🔧 Admin Control Panel</h2>
+                    <button class="admin-close" id="admin-close">✕</button>
+                </div>
+
+                <div class="admin-section">
+                    <h3>🎰 Multiplier Odds (Volatility)</h3>
+                    <div class="admin-subsection">
+                        <h4>Safe Lane</h4>
+                        <div class="admin-row">
+                            <label>Max Multiplier:</label>
+                            <input type="number" id="max-safe" value="4" min="1.5" max="100" step="0.5"> x
+                        </div>
+                        <div class="admin-row">
+                            <label>House Edge:</label>
+                            <input type="number" id="edge-safe" value="5" min="0" max="50"> %
+                        </div>
+                    </div>
+                    <div class="admin-subsection">
+                        <h4>Medium Lane</h4>
+                        <div class="admin-row">
+                            <label>Max Multiplier:</label>
+                            <input type="number" id="max-medium" value="10" min="1.5" max="100" step="0.5"> x
+                        </div>
+                        <div class="admin-row">
+                            <label>House Edge:</label>
+                            <input type="number" id="edge-medium" value="5" min="0" max="50"> %
+                        </div>
+                    </div>
+                    <div class="admin-subsection">
+                        <h4>Wild Lane</h4>
+                        <div class="admin-row">
+                            <label>Max Multiplier:</label>
+                            <input type="number" id="max-wild" value="50" min="1.5" max="100" step="0.5"> x
+                        </div>
+                        <div class="admin-row">
+                            <label>House Edge:</label>
+                            <input type="number" id="edge-wild" value="5" min="0" max="50"> %
+                        </div>
+                    </div>
+                </div>
+
+                <div class="admin-section">
+                    <h3>🐛 Debug Tools</h3>
+                    <div class="admin-row">
+                        <label>Force Next Crash Point:</label>
+                        <input type="number" id="force-crash" placeholder="Leave empty for random" min="1" max="100" step="0.01">
+                    </div>
+                    <div class="admin-row checkbox-row">
+                        <input type="checkbox" id="show-crash">
+                        <label for="show-crash">Show crash point in console</label>
+                    </div>
+                    <div class="admin-row">
+                        <button class="btn-clear-history" id="btn-clear-history">Clear All History</button>
+                    </div>
+                </div>
+
+                <div class="admin-actions">
+                    <button class="btn-apply" id="btn-apply">✓ Apply Changes</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Win/Loss Popup -->
+        <div class="result-popup" id="result-popup">
+            <div class="result-content">
+                <div class="result-icon" id="result-icon"></div>
+                <div class="result-text" id="result-text"></div>
+                <div class="result-amount" id="result-amount"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

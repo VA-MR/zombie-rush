@@ -1,0 +1,26 @@
+<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @keyframes glow { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+    .projectile { animation: spin 0.5s linear infinite; transform-origin: 50px 50px; }
+    .trail { animation: glow 0.3s infinite; }
+  </style>
+  <!-- Trail effect -->
+  <ellipse class="trail" cx="70" cy="50" rx="20" ry="8" fill="url(#trailGrad)" opacity="0.7"/>
+  <defs>
+    <radialGradient id="trailGrad" cx="0%" cy="50%">
+      <stop offset="0%" stop-color="#FF6B00" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#FF6B00" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="peaGrad" cx="30%" cy="30%">
+      <stop offset="0%" stop-color="#90EE90"/>
+      <stop offset="100%" stop-color="#228B22"/>
+    </radialGradient>
+  </defs>
+  <!-- Pea projectile -->
+  <g class="projectile">
+    <circle cx="50" cy="50" r="15" fill="url(#peaGrad)" stroke="#006400" stroke-width="2"/>
+    <!-- Highlight -->
+    <circle cx="45" cy="45" r="4" fill="rgba(255,255,255,0.6)"/>
+  </g>
+</svg>
