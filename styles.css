@@ -539,11 +539,16 @@ body {
 .potential-win {
     font-family: var(--font-ui);
     font-size: 0.55rem;
-    color: var(--color-success);
+    color: #ffd700;
     text-align: center;
     padding: 4px 12px;
     background: rgba(0, 0, 0, 0.3);
     border-radius: 12px;
+}
+
+.potential-win .bet-value {
+    font-weight: bold;
+    font-size: 0.7rem;
 }
 
 /* ============================================
@@ -897,8 +902,8 @@ body {
     background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
     border-radius: 15px;
     border: 2px solid rgba(255, 255, 255, 0.1);
-    max-width: 400px;
-    width: 90%;
+    max-width: 520px;
+    width: 95%;
     max-height: 85vh;
     overflow-y: auto;
     box-shadow: 0 15px 45px rgba(0, 0, 0, 0.5);
@@ -961,6 +966,158 @@ body {
     margin-bottom: 8px;
     text-transform: uppercase;
     letter-spacing: 1px;
+}
+
+/* Lane Configuration Cards */
+.lane-config {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.lane-config:hover {
+    border-color: rgba(255, 215, 0, 0.3);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.lane-config-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.lane-config-icon {
+    font-size: 1.4rem;
+}
+
+.lane-config-header h4 {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    color: var(--color-gold);
+    letter-spacing: 2px;
+    margin: 0;
+}
+
+.lane-config-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.config-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.config-item label {
+    font-family: var(--font-ui);
+    font-size: 0.5rem;
+    color: var(--color-text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.config-input-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.config-input-group input[type="number"] {
+    width: 65px;
+    padding: 10px 8px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.4);
+    color: var(--color-gold);
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.config-input-group input[type="number"]:focus {
+    outline: none;
+    border-color: var(--color-gold);
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+}
+
+.config-input-group .input-suffix {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    color: var(--color-text-dim);
+}
+
+.config-display {
+    padding: 10px 12px;
+    background: rgba(74, 222, 128, 0.15);
+    border: 2px solid rgba(74, 222, 128, 0.4);
+    border-radius: 8px;
+    color: var(--color-safe);
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    text-align: center;
+}
+
+.config-hint {
+    font-size: 0.5rem;
+    color: rgba(148, 163, 184, 0.7);
+    font-style: italic;
+}
+
+.volatility-select {
+    width: 100%;
+    padding: 10px 8px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.4);
+    color: var(--color-text);
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23ffd700' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 30px;
+}
+
+.volatility-select:focus {
+    outline: none;
+    border-color: var(--color-gold);
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+}
+
+.volatility-select option {
+    background: #1e293b;
+    color: var(--color-text);
+    padding: 10px;
+}
+
+/* Responsive for lane config */
+@media (max-width: 500px) {
+    .lane-config-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .config-item {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .config-hint {
+        display: none;
+    }
 }
 
 .admin-row {
@@ -1416,9 +1573,32 @@ body {
     background: rgba(239, 68, 68, 0.1);
 }
 
-/* Cash out prompt - now handled by cashout button */
+/* Cash out prompt - show dynamic bet value during active phase */
 .lane.betting-closed.has-bet .potential-win {
-    display: none;
+    display: block;
+    font-size: 0.7rem;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.3) 0%, rgba(239, 68, 68, 0.1) 100%);
+    border: 2px solid rgba(239, 68, 68, 0.6);
+    border-radius: 20px;
+    animation: potentialPulse 1s ease-in-out infinite;
+}
+
+.lane.betting-closed.has-bet .potential-win .bet-value {
+    font-size: 1.1rem;
+    color: #ffd700;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+@keyframes potentialPulse {
+    0%, 100% { 
+        box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+        border-color: rgba(239, 68, 68, 0.6);
+    }
+    50% { 
+        box-shadow: 0 0 25px rgba(239, 68, 68, 0.6);
+        border-color: rgba(239, 68, 68, 0.8);
+    }
 }
 
 /* ============================================

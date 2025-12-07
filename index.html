@@ -183,38 +183,114 @@
                 </div>
 
                 <div class="admin-section">
-                    <h3>🎰 Multiplier Odds (Volatility)</h3>
-                    <div class="admin-subsection">
-                        <h4>Safe Lane</h4>
-                        <div class="admin-row">
-                            <label>Max Multiplier:</label>
-                            <input type="number" id="max-safe" value="4" min="1.5" max="100" step="0.5"> x
+                    <h3>🎰 Lane Configuration</h3>
+                    
+                    <!-- Safe Lane -->
+                    <div class="admin-subsection lane-config">
+                        <div class="lane-config-header">
+                            <span class="lane-config-icon">🌱</span>
+                            <h4>SAFE LANE</h4>
                         </div>
-                        <div class="admin-row">
-                            <label>House Edge:</label>
-                            <input type="number" id="edge-safe" value="5" min="0" max="50"> %
+                        <div class="lane-config-grid">
+                            <div class="config-item">
+                                <label>Return to Player</label>
+                                <div class="config-input-group">
+                                    <input type="number" id="rtp-safe" value="95" min="50" max="99" step="0.5">
+                                    <span class="input-suffix">%</span>
+                                </div>
+                                <span class="config-hint">Player's expected return</span>
+                            </div>
+                            <div class="config-item">
+                                <label>House Edge</label>
+                                <div class="config-display" id="edge-display-safe">5%</div>
+                                <span class="config-hint">100% - RTP</span>
+                            </div>
+                            <div class="config-item">
+                                <label>Volatility</label>
+                                <div class="config-input-group">
+                                    <select id="volatility-safe" class="volatility-select">
+                                        <option value="2">Very Low (2x)</option>
+                                        <option value="3">Low (3x)</option>
+                                        <option value="4" selected>Medium-Low (4x)</option>
+                                        <option value="5">Medium (5x)</option>
+                                        <option value="8">Medium-High (8x)</option>
+                                        <option value="10">High (10x)</option>
+                                    </select>
+                                </div>
+                                <span class="config-hint">Max multiplier</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="admin-subsection">
-                        <h4>Medium Lane</h4>
-                        <div class="admin-row">
-                            <label>Max Multiplier:</label>
-                            <input type="number" id="max-medium" value="10" min="1.5" max="100" step="0.5"> x
+
+                    <!-- Medium Lane -->
+                    <div class="admin-subsection lane-config">
+                        <div class="lane-config-header">
+                            <span class="lane-config-icon">🏜️</span>
+                            <h4>MEDIUM LANE</h4>
                         </div>
-                        <div class="admin-row">
-                            <label>House Edge:</label>
-                            <input type="number" id="edge-medium" value="5" min="0" max="50"> %
+                        <div class="lane-config-grid">
+                            <div class="config-item">
+                                <label>Return to Player</label>
+                                <div class="config-input-group">
+                                    <input type="number" id="rtp-medium" value="95" min="50" max="99" step="0.5">
+                                    <span class="input-suffix">%</span>
+                                </div>
+                                <span class="config-hint">Player's expected return</span>
+                            </div>
+                            <div class="config-item">
+                                <label>House Edge</label>
+                                <div class="config-display" id="edge-display-medium">5%</div>
+                                <span class="config-hint">100% - RTP</span>
+                            </div>
+                            <div class="config-item">
+                                <label>Volatility</label>
+                                <div class="config-input-group">
+                                    <select id="volatility-medium" class="volatility-select">
+                                        <option value="5">Medium (5x)</option>
+                                        <option value="8">Medium-High (8x)</option>
+                                        <option value="10" selected>High (10x)</option>
+                                        <option value="15">Very High (15x)</option>
+                                        <option value="20">Extreme (20x)</option>
+                                    </select>
+                                </div>
+                                <span class="config-hint">Max multiplier</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="admin-subsection">
-                        <h4>Wild Lane</h4>
-                        <div class="admin-row">
-                            <label>Max Multiplier:</label>
-                            <input type="number" id="max-wild" value="50" min="1.5" max="100" step="0.5"> x
+
+                    <!-- Wild Lane -->
+                    <div class="admin-subsection lane-config">
+                        <div class="lane-config-header">
+                            <span class="lane-config-icon">🌙</span>
+                            <h4>WILD LANE</h4>
                         </div>
-                        <div class="admin-row">
-                            <label>House Edge:</label>
-                            <input type="number" id="edge-wild" value="5" min="0" max="50"> %
+                        <div class="lane-config-grid">
+                            <div class="config-item">
+                                <label>Return to Player</label>
+                                <div class="config-input-group">
+                                    <input type="number" id="rtp-wild" value="95" min="50" max="99" step="0.5">
+                                    <span class="input-suffix">%</span>
+                                </div>
+                                <span class="config-hint">Player's expected return</span>
+                            </div>
+                            <div class="config-item">
+                                <label>House Edge</label>
+                                <div class="config-display" id="edge-display-wild">5%</div>
+                                <span class="config-hint">100% - RTP</span>
+                            </div>
+                            <div class="config-item">
+                                <label>Volatility</label>
+                                <div class="config-input-group">
+                                    <select id="volatility-wild" class="volatility-select">
+                                        <option value="20">High (20x)</option>
+                                        <option value="30">Very High (30x)</option>
+                                        <option value="50" selected>Extreme (50x)</option>
+                                        <option value="75">Ultra (75x)</option>
+                                        <option value="100">Max (100x)</option>
+                                    </select>
+                                </div>
+                                <span class="config-hint">Max multiplier</span>
+                            </div>
                         </div>
                     </div>
                 </div>

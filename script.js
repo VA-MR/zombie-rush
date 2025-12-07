@@ -392,12 +392,15 @@ const DOM = {
         }
     },
     admin: {
-        maxSafe: document.getElementById('max-safe'),
-        maxMedium: document.getElementById('max-medium'),
-        maxWild: document.getElementById('max-wild'),
-        edgeSafe: document.getElementById('edge-safe'),
-        edgeMedium: document.getElementById('edge-medium'),
-        edgeWild: document.getElementById('edge-wild'),
+        rtpSafe: document.getElementById('rtp-safe'),
+        rtpMedium: document.getElementById('rtp-medium'),
+        rtpWild: document.getElementById('rtp-wild'),
+        edgeDisplaySafe: document.getElementById('edge-display-safe'),
+        edgeDisplayMedium: document.getElementById('edge-display-medium'),
+        edgeDisplayWild: document.getElementById('edge-display-wild'),
+        volatilitySafe: document.getElementById('volatility-safe'),
+        volatilityMedium: document.getElementById('volatility-medium'),
+        volatilityWild: document.getElementById('volatility-wild'),
         forceCrash: document.getElementById('force-crash'),
         showCrash: document.getElementById('show-crash')
     }
@@ -936,8 +939,8 @@ function placeBet(laneName) {
     // Update UI - strong visual feedback
     dom.element.classList.add('has-bet');
     dom.element.classList.remove('no-bet');
-    dom.potential.textContent = `Bet: $${formatMoney(betAmount)}`;
-    dom.potential.style.color = '#4ade80';
+    dom.potential.innerHTML = `<span class="bet-value">$${formatMoney(betAmount)}</span>`;
+    dom.potential.style.color = '#ffd700';
     
     // Update bet badge
     if (dom.betBadge) {
@@ -975,8 +978,8 @@ function cashOut(laneName) {
     dom.element.classList.add('flash-win');
     setTimeout(() => dom.element.classList.remove('flash-win'), 500);
     
-    dom.potential.textContent = `Won: +$${formatMoney(profit)}`;
-    dom.potential.style.color = '#4ade80';
+    dom.potential.innerHTML = `Won: <span class="bet-value">+$${formatMoney(profit)}</span>`;
+    dom.potential.style.color = '#ffd700';
     
     // Show win notification
     showResultPopup('win', `CASHED OUT at ${state.currentMultiplier.toFixed(2)}x`, winAmount);
@@ -1084,8 +1087,8 @@ function spawnZombie(laneName, zombieType) {
     dom.multiplier.classList.remove('hot', 'danger');
     dom.element.classList.add('spawning');
     dom.element.classList.remove('has-bet', 'betting-closed', 'no-bet');
-    dom.potential.textContent = `Click to bet! (${typeInfo.emoji} ${typeInfo.name} - Max ${config.maxMultiplier}x)`;
-    dom.potential.style.color = '#4ade80';
+    dom.potential.textContent = 'Click to bet';
+    dom.potential.style.color = '#ffd700';
     
     setTimeout(() => dom.element.classList.remove('spawning'), 300);
     
@@ -1245,11 +1248,12 @@ function updateContinuousGame() {
                 dom.element.classList.add('betting-closed');
                 if (state.bet === 0) {
                     dom.element.classList.add('no-bet');
-                    dom.potential.textContent = 'No bet';
-                    dom.potential.style.color = '#94a3b8';
+                    dom.potential.textContent = 'No more bets';
+                    dom.potential.style.color = '#ffd700';
                 } else {
-                    dom.potential.textContent = 'CLICK TO CASH OUT!';
-                    dom.potential.style.color = '#ef4444';
+                    // Show the current bet value
+                    dom.potential.innerHTML = `<span class="bet-value">$${formatMoney(state.bet)}</span>`;
+                    dom.potential.style.color = '#ffd700';
                 }
                 
                 // Start projectiles
@@ -1300,10 +1304,11 @@ function updateContinuousGame() {
             state.zombiePosition = safeZoneEndPosition - (activeProgress * remainingTrack);
             dom.zombieContainer.style.left = state.zombiePosition + '%';
             
-            // Update potential win display
+            // Update potential win display - show growing bet value
             if (state.bet > 0) {
                 const potentialWin = state.bet * state.currentMultiplier;
-                dom.potential.textContent = `Win: $${formatMoney(potentialWin)} - CASH OUT!`;
+                dom.potential.innerHTML = `<span class="bet-value">$${formatMoney(potentialWin)}</span>`;
+                dom.potential.style.color = '#ffd700';
             }
             
             allLanesFinished = false;
@@ -1344,8 +1349,8 @@ function handleCrash(laneName) {
     dom.multiplier.classList.add('danger');
     
     if (state.bet > 0) {
-        dom.potential.textContent = 'Lost: $' + formatMoney(state.bet);
-        dom.potential.style.color = '#ef4444';
+        dom.potential.innerHTML = `Lost: <span class="bet-value">$${formatMoney(state.bet)}</span>`;
+        dom.potential.style.color = '#ffd700';
     }
     
     // Shake effect
@@ -1389,7 +1394,7 @@ function handleJackpot(laneName) {
         GameState.balance += winAmount;
         updateBalance();
         
-        dom.potential.textContent = 'Won: $' + formatMoney(winAmount);
+        dom.potential.innerHTML = `Won: <span class="bet-value">$${formatMoney(winAmount)}</span>`;
         dom.potential.style.color = '#ffd700';
         
         createConfetti();
@@ -1504,15 +1509,48 @@ function showResultPopup(type, text, amount) {
 function openAdminPanel() {
     DOM.adminOverlay.classList.add('active');
     
-    DOM.admin.maxSafe.value = GameConfig.lanes.safe.maxMultiplier;
-    DOM.admin.maxMedium.value = GameConfig.lanes.medium.maxMultiplier;
-    DOM.admin.maxWild.value = GameConfig.lanes.wild.maxMultiplier;
+    // Set RTP values (RTP = 100 - houseEdge%)
+    DOM.admin.rtpSafe.value = (100 - GameConfig.lanes.safe.houseEdge * 100).toFixed(1);
+    DOM.admin.rtpMedium.value = (100 - GameConfig.lanes.medium.houseEdge * 100).toFixed(1);
+    DOM.admin.rtpWild.value = (100 - GameConfig.lanes.wild.houseEdge * 100).toFixed(1);
     
-    DOM.admin.edgeSafe.value = GameConfig.lanes.safe.houseEdge * 100;
-    DOM.admin.edgeMedium.value = GameConfig.lanes.medium.houseEdge * 100;
-    DOM.admin.edgeWild.value = GameConfig.lanes.wild.houseEdge * 100;
+    // Update house edge displays
+    updateHouseEdgeDisplay('safe');
+    updateHouseEdgeDisplay('medium');
+    updateHouseEdgeDisplay('wild');
+    
+    // Set volatility (max multiplier) values
+    DOM.admin.volatilitySafe.value = GameConfig.lanes.safe.maxMultiplier;
+    DOM.admin.volatilityMedium.value = GameConfig.lanes.medium.maxMultiplier;
+    DOM.admin.volatilityWild.value = GameConfig.lanes.wild.maxMultiplier;
     
     DOM.admin.showCrash.checked = GameConfig.debug.showCrashInConsole;
+    
+    // Add live RTP update listeners
+    DOM.admin.rtpSafe.addEventListener('input', () => updateHouseEdgeDisplay('safe'));
+    DOM.admin.rtpMedium.addEventListener('input', () => updateHouseEdgeDisplay('medium'));
+    DOM.admin.rtpWild.addEventListener('input', () => updateHouseEdgeDisplay('wild'));
+}
+
+function updateHouseEdgeDisplay(lane) {
+    const rtpInput = DOM.admin[`rtp${lane.charAt(0).toUpperCase() + lane.slice(1)}`];
+    const edgeDisplay = DOM.admin[`edgeDisplay${lane.charAt(0).toUpperCase() + lane.slice(1)}`];
+    
+    const rtp = parseFloat(rtpInput.value) || 95;
+    const houseEdge = 100 - rtp;
+    edgeDisplay.textContent = houseEdge.toFixed(1) + '%';
+    
+    // Color code based on house edge
+    if (houseEdge <= 3) {
+        edgeDisplay.style.borderColor = 'rgba(74, 222, 128, 0.6)';
+        edgeDisplay.style.color = '#4ade80';
+    } else if (houseEdge <= 7) {
+        edgeDisplay.style.borderColor = 'rgba(251, 191, 36, 0.6)';
+        edgeDisplay.style.color = '#fbbf24';
+    } else {
+        edgeDisplay.style.borderColor = 'rgba(239, 68, 68, 0.6)';
+        edgeDisplay.style.color = '#ef4444';
+    }
 }
 
 function closeAdminPanel() {
@@ -1520,10 +1558,20 @@ function closeAdminPanel() {
 }
 
 function applyAdminChanges() {
-    // Update max multipliers and recalculate speed constants
-    const newMaxSafe = parseFloat(DOM.admin.maxSafe.value) || 4;
-    const newMaxMedium = parseFloat(DOM.admin.maxMedium.value) || 10;
-    const newMaxWild = parseFloat(DOM.admin.maxWild.value) || 50;
+    // Get RTP values and convert to house edge
+    const rtpSafe = parseFloat(DOM.admin.rtpSafe.value) || 95;
+    const rtpMedium = parseFloat(DOM.admin.rtpMedium.value) || 95;
+    const rtpWild = parseFloat(DOM.admin.rtpWild.value) || 95;
+    
+    // Update house edges (houseEdge = 1 - RTP/100)
+    GameConfig.lanes.safe.houseEdge = (100 - rtpSafe) / 100;
+    GameConfig.lanes.medium.houseEdge = (100 - rtpMedium) / 100;
+    GameConfig.lanes.wild.houseEdge = (100 - rtpWild) / 100;
+    
+    // Get volatility (max multiplier) values
+    const newMaxSafe = parseFloat(DOM.admin.volatilitySafe.value) || 4;
+    const newMaxMedium = parseFloat(DOM.admin.volatilityMedium.value) || 10;
+    const newMaxWild = parseFloat(DOM.admin.volatilityWild.value) || 50;
     
     GameConfig.lanes.safe.maxMultiplier = newMaxSafe;
     GameConfig.lanes.medium.maxMultiplier = newMaxMedium;
@@ -1533,11 +1581,6 @@ function applyAdminChanges() {
     GameConfig.lanes.safe.speedConstant = Math.log(newMaxSafe) / GameConfig.targetDuration;
     GameConfig.lanes.medium.speedConstant = Math.log(newMaxMedium) / GameConfig.targetDuration;
     GameConfig.lanes.wild.speedConstant = Math.log(newMaxWild) / GameConfig.targetDuration;
-    
-    // Update house edges
-    GameConfig.lanes.safe.houseEdge = (parseFloat(DOM.admin.edgeSafe.value) || 5) / 100;
-    GameConfig.lanes.medium.houseEdge = (parseFloat(DOM.admin.edgeMedium.value) || 5) / 100;
-    GameConfig.lanes.wild.houseEdge = (parseFloat(DOM.admin.edgeWild.value) || 5) / 100;
     
     // Update debug settings
     const forceCrash = parseFloat(DOM.admin.forceCrash.value);
@@ -1549,7 +1592,11 @@ function applyAdminChanges() {
     document.querySelector('[data-lane="medium"] .lane-info').textContent = `Max ${newMaxMedium}x`;
     document.querySelector('[data-lane="wild"] .lane-info').textContent = `Max ${newMaxWild}x`;
     
-    console.log('Admin changes applied:', GameConfig);
+    console.log('Admin changes applied:', {
+        safe: { rtp: rtpSafe + '%', houseEdge: GameConfig.lanes.safe.houseEdge, maxMultiplier: newMaxSafe },
+        medium: { rtp: rtpMedium + '%', houseEdge: GameConfig.lanes.medium.houseEdge, maxMultiplier: newMaxMedium },
+        wild: { rtp: rtpWild + '%', houseEdge: GameConfig.lanes.wild.houseEdge, maxMultiplier: newMaxWild }
+    });
     showNotification('Settings updated!', 'success');
     closeAdminPanel();
 }
