@@ -939,7 +939,10 @@ function placeBet(laneName) {
     // Update UI - strong visual feedback
     dom.element.classList.add('has-bet');
     dom.element.classList.remove('no-bet');
-    dom.potential.innerHTML = `<span class="bet-value">$${formatMoney(betAmount)}</span>`;
+    
+    // Show initial bet value × current multiplier (1.00x in safe zone)
+    const initialPotential = betAmount * state.currentMultiplier;
+    dom.potential.innerHTML = `<span class="potential-value">$${formatMoney(initialPotential)}</span><span class="potential-label">POTENTIAL WIN</span>`;
     dom.potential.style.color = '#ffd700';
     
     // Update bet badge
@@ -970,9 +973,12 @@ function cashOut(laneName) {
     
     // Clear bet
     const profit = winAmount - state.bet;
+    const cashoutMultiplier = state.currentMultiplier;
     state.bet = 0;
     
-    // Update UI
+    // Update UI - show win amount in multiplier display
+    dom.multiplier.innerHTML = `<span class="multiplier-value">${cashoutMultiplier.toFixed(2)}x</span><span class="bet-win-value" style="color:#4ade80;text-shadow:0 0 15px rgba(74,222,128,1);">+$${formatMoney(winAmount)}</span>`;
+    
     dom.element.classList.remove('has-bet');
     dom.element.classList.add('no-bet');
     dom.element.classList.add('flash-win');
@@ -982,10 +988,10 @@ function cashOut(laneName) {
     dom.potential.style.color = '#ffd700';
     
     // Show win notification
-    showResultPopup('win', `CASHED OUT at ${state.currentMultiplier.toFixed(2)}x`, winAmount);
+    showResultPopup('win', `CASHED OUT at ${cashoutMultiplier.toFixed(2)}x`, winAmount);
     
     // Add to history
-    addToHistory(laneName, 'win', state.currentMultiplier);
+    addToHistory(laneName, 'win', cashoutMultiplier);
 }
 
 // ============================================
@@ -1082,7 +1088,8 @@ function spawnZombie(laneName, zombieType) {
     // Add zombie type indicator badge
     addZombieTypeBadge(laneName, zombieType);
     
-    // Update UI
+    // Update UI - reset multiplier display to simple text
+    dom.multiplier.innerHTML = '';
     dom.multiplier.textContent = '1.00x';
     dom.multiplier.classList.remove('hot', 'danger');
     dom.element.classList.add('spawning');
@@ -1142,7 +1149,8 @@ function resetLaneToIdle(laneName) {
         existingBadge.remove();
     }
     
-    // Update UI
+    // Update UI - reset multiplier to simple text
+    dom.multiplier.innerHTML = '';
     dom.multiplier.textContent = '—';
     dom.multiplier.classList.remove('hot', 'danger');
     dom.element.classList.remove('has-bet', 'spawning', 'betting-closed', 'no-bet');
@@ -1238,6 +1246,14 @@ function updateContinuousGame() {
             state.zombiePosition = 90 - (safeZoneProgress * (90 - safeZoneEndPosition));
             dom.zombieContainer.style.left = state.zombiePosition + '%';
             
+            // Update potential win display during safe zone (if bet placed)
+            if (state.bet > 0) {
+                const potentialWin = state.bet * state.currentMultiplier;
+                // Show bet value in multiplier display during safe zone too
+                dom.multiplier.innerHTML = `<span class="multiplier-value">${state.currentMultiplier.toFixed(2)}x</span><span class="bet-win-value">$${formatMoney(potentialWin)}</span>`;
+                dom.potential.innerHTML = `<span class="potential-value">$${formatMoney(potentialWin)}</span><span class="potential-label">POTENTIAL WIN</span>`;
+            }
+            
             // Check if safe zone time is over
             if (safeZoneElapsed >= GameConfig.safeZoneDuration) {
                 // Transition to active state
@@ -1248,11 +1264,12 @@ function updateContinuousGame() {
                 dom.element.classList.add('betting-closed');
                 if (state.bet === 0) {
                     dom.element.classList.add('no-bet');
-                    dom.potential.textContent = 'No more bets';
-                    dom.potential.style.color = '#ffd700';
+                    dom.potential.textContent = 'No bet placed';
+                    dom.potential.style.color = '#94a3b8';
                 } else {
-                    // Show the current bet value
-                    dom.potential.innerHTML = `<span class="bet-value">$${formatMoney(state.bet)}</span>`;
+                    // Show the bet value × multiplier with cash out prompt
+                    const potentialWin = state.bet * state.currentMultiplier;
+                    dom.potential.innerHTML = `<span class="potential-value">$${formatMoney(potentialWin)}</span><span class="click-cashout">CLICK TO CASH OUT</span>`;
                     dom.potential.style.color = '#ffd700';
                 }
                 
@@ -1285,8 +1302,13 @@ function updateContinuousGame() {
                 return;
             }
             
-            // Update UI
-            dom.multiplier.textContent = state.currentMultiplier.toFixed(2) + 'x';
+            // Update UI - show multiplier and bet value together
+            if (state.bet > 0) {
+                const potentialWin = state.bet * state.currentMultiplier;
+                dom.multiplier.innerHTML = `<span class="multiplier-value">${state.currentMultiplier.toFixed(2)}x</span><span class="bet-win-value">$${formatMoney(potentialWin)}</span>`;
+            } else {
+                dom.multiplier.textContent = state.currentMultiplier.toFixed(2) + 'x';
+            }
             
             // Update multiplier color
             if (state.currentMultiplier > config.maxMultiplier * 0.7) {
@@ -1304,10 +1326,10 @@ function updateContinuousGame() {
             state.zombiePosition = safeZoneEndPosition - (activeProgress * remainingTrack);
             dom.zombieContainer.style.left = state.zombiePosition + '%';
             
-            // Update potential win display - show growing bet value
+            // Update potential win display - show growing bet value (bet × multiplier)
             if (state.bet > 0) {
                 const potentialWin = state.bet * state.currentMultiplier;
-                dom.potential.innerHTML = `<span class="bet-value">$${formatMoney(potentialWin)}</span>`;
+                dom.potential.innerHTML = `<span class="potential-value">$${formatMoney(potentialWin)}</span><span class="click-cashout">CLICK TO CASH OUT</span>`;
                 dom.potential.style.color = '#ffd700';
             }
             
@@ -1344,8 +1366,12 @@ function handleCrash(laneName) {
     // Show explosion
     showExplosion(laneName);
     
-    // Update UI
-    dom.multiplier.textContent = 'CRASH!';
+    // Update UI - show crash with lost bet amount if applicable
+    if (state.bet > 0) {
+        dom.multiplier.innerHTML = `<span class="multiplier-value">CRASH!</span><span class="bet-win-value" style="color:#ef4444;text-shadow:0 0 15px rgba(239,68,68,1);">-$${formatMoney(state.bet)}</span>`;
+    } else {
+        dom.multiplier.textContent = 'CRASH!';
+    }
     dom.multiplier.classList.add('danger');
     
     if (state.bet > 0) {
@@ -1394,6 +1420,9 @@ function handleJackpot(laneName) {
         GameState.balance += winAmount;
         updateBalance();
         
+        // Show jackpot with winning amount in multiplier display
+        dom.multiplier.innerHTML = `<span class="multiplier-value">🏆 JACKPOT!</span><span class="bet-win-value" style="color:#ffd700;text-shadow:0 0 20px rgba(255,215,0,1);">+$${formatMoney(winAmount)}</span>`;
+        
         dom.potential.innerHTML = `Won: <span class="bet-value">$${formatMoney(winAmount)}</span>`;
         dom.potential.style.color = '#ffd700';
         
@@ -1401,13 +1430,11 @@ function handleJackpot(laneName) {
         showResultPopup('jackpot', `JACKPOT! ${config.maxMultiplier}x`, winAmount);
         addToHistory(laneName, 'jackpot', config.maxMultiplier);
     } else {
+        dom.multiplier.textContent = '🏆 JACKPOT!';
         dom.potential.textContent = 'JACKPOT! (no bet)';
         dom.potential.style.color = '#ffd700';
         addToHistory(laneName, 'jackpot', config.maxMultiplier);
     }
-    
-    // Update UI
-    dom.multiplier.textContent = '🏆 JACKPOT!';
     
     // Set state to crashed (finished)
     state.state = LaneState.CRASHED;

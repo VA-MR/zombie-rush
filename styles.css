@@ -391,9 +391,9 @@ body {
 
 /* Multiplier Display */
 .multiplier-display {
-    background: rgba(0, 0, 0, 0.8);
-    padding: 4px 12px;
-    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.9);
+    padding: 6px 16px;
+    border-radius: 12px;
     border: 2px solid var(--color-gold);
     box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
     z-index: 10;
@@ -402,6 +402,38 @@ body {
     bottom: 0 !important;
     left: 50% !important;
     transform: translateX(-50%) translateY(50%) !important;
+    min-width: 80px;
+    text-align: center;
+}
+
+/* When has bet, make the multiplier display more prominent */
+.lane.has-bet .multiplier-display {
+    border-color: #4ade80;
+    box-shadow: 
+        0 0 20px rgba(74, 222, 128, 0.6),
+        0 0 40px rgba(74, 222, 128, 0.3);
+    padding: 8px 20px;
+}
+
+.lane.betting-closed.has-bet .multiplier-display {
+    border-color: #ef4444;
+    box-shadow: 
+        0 0 20px rgba(239, 68, 68, 0.6),
+        0 0 40px rgba(239, 68, 68, 0.3);
+    animation: multiplierBoxPulse 0.5s ease-in-out infinite;
+}
+
+@keyframes multiplierBoxPulse {
+    0%, 100% { 
+        box-shadow: 
+            0 0 20px rgba(239, 68, 68, 0.6),
+            0 0 40px rgba(239, 68, 68, 0.3);
+    }
+    50% { 
+        box-shadow: 
+            0 0 30px rgba(239, 68, 68, 0.8),
+            0 0 60px rgba(239, 68, 68, 0.5);
+    }
 }
 
 .multiplier {
@@ -410,6 +442,37 @@ body {
     color: var(--color-gold);
     letter-spacing: 2px;
     text-shadow: 0 0 8px rgba(255, 215, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.multiplier .multiplier-value {
+    font-size: 1.4rem;
+    letter-spacing: 2px;
+}
+
+.multiplier .bet-win-value {
+    font-size: 1.8rem;
+    color: #4ade80;
+    text-shadow: 
+        0 0 15px rgba(74, 222, 128, 1),
+        0 0 30px rgba(74, 222, 128, 0.6),
+        2px 2px 4px rgba(0, 0, 0, 0.5);
+    animation: betValuePulse 0.3s ease-in-out infinite alternate;
+    letter-spacing: 1px;
+}
+
+@keyframes betValuePulse {
+    0% { 
+        transform: scale(1);
+        color: #4ade80;
+    }
+    100% { 
+        transform: scale(1.05);
+        color: #86efac;
+    }
 }
 
 .multiplier.hot {
@@ -417,9 +480,35 @@ body {
     animation: pulse 0.3s ease-in-out infinite;
 }
 
+.multiplier.hot .bet-win-value {
+    color: #fbbf24;
+    text-shadow: 
+        0 0 15px rgba(251, 191, 36, 1),
+        0 0 30px rgba(251, 191, 36, 0.6),
+        2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
 .multiplier.danger {
     color: var(--color-danger);
     animation: pulse 0.15s ease-in-out infinite;
+}
+
+.multiplier.danger .bet-win-value {
+    color: #ef4444;
+    text-shadow: 
+        0 0 15px rgba(239, 68, 68, 1),
+        0 0 30px rgba(239, 68, 68, 0.6),
+        2px 2px 4px rgba(0, 0, 0, 0.5);
+    animation: betValueDanger 0.15s ease-in-out infinite alternate;
+}
+
+@keyframes betValueDanger {
+    0% { 
+        transform: scale(1);
+    }
+    100% { 
+        transform: scale(1.1);
+    }
 }
 
 @keyframes pulse {
@@ -541,14 +630,58 @@ body {
     font-size: 0.55rem;
     color: #ffd700;
     text-align: center;
-    padding: 4px 12px;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 12px;
+    padding: 8px 16px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 16px;
+    border: 2px solid rgba(255, 215, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
 }
 
 .potential-win .bet-value {
     font-weight: bold;
     font-size: 0.7rem;
+}
+
+/* Large animated potential win value */
+.potential-win .potential-value {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: bold;
+    color: #ffd700;
+    text-shadow: 
+        0 0 10px rgba(255, 215, 0, 0.8),
+        0 0 20px rgba(255, 215, 0, 0.5),
+        2px 2px 4px rgba(0, 0, 0, 0.5);
+    letter-spacing: 2px;
+    animation: potentialValuePulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes potentialValuePulse {
+    0% { 
+        transform: scale(1);
+        text-shadow: 
+            0 0 10px rgba(255, 215, 0, 0.8),
+            0 0 20px rgba(255, 215, 0, 0.5),
+            2px 2px 4px rgba(0, 0, 0, 0.5);
+    }
+    100% { 
+        transform: scale(1.02);
+        text-shadow: 
+            0 0 15px rgba(255, 215, 0, 1),
+            0 0 30px rgba(255, 215, 0, 0.7),
+            2px 2px 4px rgba(0, 0, 0, 0.5);
+    }
+}
+
+.potential-win .potential-label {
+    font-family: var(--font-ui);
+    font-size: 0.45rem;
+    color: rgba(255, 215, 0, 0.8);
+    letter-spacing: 2px;
+    text-transform: uppercase;
 }
 
 /* ============================================
@@ -1204,51 +1337,57 @@ body {
     box-shadow: 0 4px 15px rgba(34, 197, 94, 0.5);
 }
 
-/* Result Popup */
+/* Result Popup - Compact toast style at top */
 .result-popup {
     position: fixed;
-    top: 50%;
+    top: 20px;
     left: 50%;
-    transform: translate(-50%, -50%) scale(0);
+    transform: translateX(-50%) translateY(-100px);
     z-index: 2000;
     transition: transform 0.3s ease;
+    pointer-events: none;
 }
 
 .result-popup.active {
-    transform: translate(-50%, -50%) scale(1);
+    transform: translateX(-50%) translateY(0);
 }
 
 .result-content {
     background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    padding: 30px 45px;
-    border-radius: 15px;
+    padding: 12px 24px;
+    border-radius: 50px;
     text-align: center;
     border: 2px solid var(--color-gold);
-    box-shadow: 0 0 40px rgba(255, 215, 0, 0.3);
+    box-shadow: 0 4px 20px rgba(255, 215, 0, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .result-icon {
-    font-size: 3rem;
-    margin-bottom: 10px;
+    font-size: 1.5rem;
+    margin-bottom: 0;
 }
 
 .result-text {
     font-family: var(--font-display);
-    font-size: 1.5rem;
-    letter-spacing: 2px;
-    margin-bottom: 8px;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    margin-bottom: 0;
+    white-space: nowrap;
 }
 
 .result-amount {
     font-family: var(--font-display);
-    font-size: 1.8rem;
+    font-size: 1.1rem;
     color: var(--color-gold);
     letter-spacing: 1px;
+    white-space: nowrap;
 }
 
 .result-popup.win .result-content {
     border-color: var(--color-success);
-    box-shadow: 0 0 40px rgba(34, 197, 94, 0.3);
+    box-shadow: 0 4px 20px rgba(34, 197, 94, 0.4);
 }
 
 .result-popup.win .result-text {
@@ -1257,7 +1396,7 @@ body {
 
 .result-popup.loss .result-content {
     border-color: var(--color-danger);
-    box-shadow: 0 0 40px rgba(239, 68, 68, 0.3);
+    box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);
 }
 
 .result-popup.loss .result-text {
@@ -1266,13 +1405,13 @@ body {
 
 .result-popup.jackpot .result-content {
     border-color: var(--color-gold);
-    box-shadow: 0 0 60px rgba(255, 215, 0, 0.5);
-    animation: jackpotBounce 0.5s ease-in-out infinite;
+    box-shadow: 0 4px 25px rgba(255, 215, 0, 0.6);
+    animation: jackpotGlowToast 1s ease-in-out infinite;
 }
 
-@keyframes jackpotBounce {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
+@keyframes jackpotGlowToast {
+    0%, 100% { box-shadow: 0 4px 20px rgba(255, 215, 0, 0.5); }
+    50% { box-shadow: 0 4px 30px rgba(255, 215, 0, 0.8); }
 }
 
 /* Lane shake animation */
@@ -1575,19 +1714,39 @@ body {
 
 /* Cash out prompt - show dynamic bet value during active phase */
 .lane.betting-closed.has-bet .potential-win {
-    display: block;
+    display: flex;
     font-size: 0.7rem;
-    padding: 8px 16px;
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.3) 0%, rgba(239, 68, 68, 0.1) 100%);
-    border: 2px solid rgba(239, 68, 68, 0.6);
-    border-radius: 20px;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.4) 0%, rgba(239, 68, 68, 0.2) 100%);
+    border: 3px solid rgba(239, 68, 68, 0.8);
+    border-radius: 25px;
     animation: potentialPulse 1s ease-in-out infinite;
+    box-shadow: 
+        0 0 20px rgba(239, 68, 68, 0.4),
+        inset 0 0 20px rgba(0, 0, 0, 0.3);
 }
 
 .lane.betting-closed.has-bet .potential-win .bet-value {
     font-size: 1.1rem;
     color: #ffd700;
     text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.lane.betting-closed.has-bet .potential-win .potential-value {
+    font-size: 2rem;
+    color: #ffd700;
+    animation: activePotentialPulse 0.3s ease-in-out infinite alternate;
+}
+
+@keyframes activePotentialPulse {
+    0% { 
+        transform: scale(1);
+        color: #ffd700;
+    }
+    100% { 
+        transform: scale(1.05);
+        color: #ffec80;
+    }
 }
 
 @keyframes potentialPulse {
@@ -1599,6 +1758,22 @@ body {
         box-shadow: 0 0 25px rgba(239, 68, 68, 0.6);
         border-color: rgba(239, 68, 68, 0.8);
     }
+}
+
+/* Click to cash out label */
+.potential-win .click-cashout {
+    display: block;
+    font-family: var(--font-ui);
+    font-size: 0.45rem;
+    color: #ef4444;
+    letter-spacing: 1px;
+    margin-top: 4px;
+    animation: cashoutBlink 0.8s ease-in-out infinite;
+}
+
+@keyframes cashoutBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
 }
 
 /* ============================================
